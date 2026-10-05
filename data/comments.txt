@@ -1,0 +1,32 @@
+# 3 bình luận độc lập, gửi lần lượt vào mỗi bài. Các bình luận cách nhau bằng một dòng chỉ có ---
+#   ảnh: <tên file>     ảnh trong data/images gắn kèm bình luận
+#   liên hệ: <câu>      dòng có SĐT/địa chỉ — TỰ BỎ khi nhóm đã từng từ chối bình luận (bản an toàn)
+#   an toàn: <câu>      câu kêu gọi thay thế, CHỈ dùng trong bản an toàn
+# Dòng bắt đầu bằng # sẽ bị bỏ qua.
+
+ảnh: MSI_G2712F_FHD_180Hz_Gia_1600000d.jpg
+MSI G2712F 27" – tấm nền Rapid IPS, Full HD 180Hz, phản hồi 1ms (GtG).
+Rapid IPS là IPS thế hệ mới: tinh thể lỏng đảo trạng thái nhanh hơn IPS thường, nên vẫn giữ màu chuẩn và góc nhìn 178° mà chuyển động không bị nhòe.
+180Hz nghĩa là mỗi khung hình chỉ ~5,6ms – rê chuột, lia camera mượt hơn hẳn màn 60–75Hz.
+Có Adaptive-Sync: màn tự đồng bộ tần số với card đồ họa, hết xé hình mà không cần bật V-Sync gây trễ.
+Giá 1.600.000đ – bảo hành lỗi 1 đổi 1 trong tháng đầu.
+liên hệ: Địa chỉ: 64 Cầu Diễn. Zalo/Hotline: 0902 189 751.
+an toàn: Bác cần ảnh thật hoặc video test màn thì ib mình nhé.
+---
+ảnh: MSI_G274QPF_E2_2K_180Hz_Gia_2400000d.png
+MSI G274QPF E2 27" – 2K (2560x1440) Rapid IPS, 180Hz, 1ms (GtG).
+2K trên 27" cho mật độ ~109 PPI, nét hơn rõ so với Full HD 27" (~82 PPI); số điểm ảnh gấp ~1,8 lần nên chữ mịn, mở 2 cửa sổ cạnh nhau vẫn thoải mái.
+Rapid IPS + 180Hz: màu và góc nhìn của IPS, tốc độ đủ cho game FPS – mỗi khung hình ~5,6ms.
+Adaptive-Sync chống xé hình, khung hình liền mạch kể cả khi FPS lên xuống.
+Giá 2.400.000đ – bảo hành lỗi 1 đổi 1 trong tháng đầu.
+liên hệ: Địa chỉ: 64 Cầu Diễn. Zalo/Hotline: 0902 189 751.
+an toàn: Bác cần ảnh góc máy hay test màu, test điểm chết thì ib mình gửi nhé.
+---
+ảnh: MSI_G274QRFW_2K_170Hz_Gia_2450000d.png
+MSI G274QRFW 27" – 2K (2560x1440) Rapid IPS, 170Hz, 1ms (GtG), thiết kế màu trắng.
+Mật độ ~109 PPI trên 27": hiển thị nét, dư không gian để xếp nhiều cửa sổ khi làm việc.
+170Hz + 1ms: mỗi khung hình ~5,9ms, chuyển động rõ, hạn chế bóng mờ khi chơi game tốc độ cao.
+Adaptive-Sync đồng bộ với card đồ họa, hình ảnh liền mạch không xé.
+Màu trắng hợp góc máy setup trắng/sáng. Giá 2.450.000đ – bảo hành lỗi 1 đổi 1 trong tháng đầu.
+liên hệ: Địa chỉ: 64 Cầu Diễn. Zalo/Hotline: 0902 189 751.
+an toàn: Bác thích setup trắng thì ib mình gửi ảnh thật nhé.

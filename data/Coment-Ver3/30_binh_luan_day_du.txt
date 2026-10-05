@@ -1,0 +1,321 @@
+# 30 mẫu bình luận bán hàng (10 mẫu / sản phẩm). Các mẫu cách nhau bằng dòng ---
+# Chỗ trống tự điền khi đăng: {giá} = giá đang bán, {giá_mới} = giá mua mới, {tiết_kiệm} = giá mới - giá bán
+# (sửa giá ở web -> tab Sản phẩm -> Sửa). Dòng bắt đầu bằng # được bỏ qua.
+
+Màn 27 inch 180Hz giá mềm đây bác: MSI G2712F.
+• Tấm nền Rapid IPS: màu chuẩn, góc nhìn 178°, tốc độ đảo điểm ảnh nhanh hơn IPS thường nên chơi game không bị bóng mờ.
+• 180Hz + 1ms GtG: mỗi khung hình chỉ khoảng 5,6ms, lia chuột mượt hẳn so với màn 60–75Hz.
+• Adaptive-Sync chống xé hình, không cần bật V-Sync gây trễ.
+Lưu ý: đây là màn cũ công ty thanh lý, đã qua sử dụng (không phải hàng mới).
+Mua mới khoảng {giá_mới}, bên mình để {giá} – tiết kiệm {tiết_kiệm}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng, bác yên tâm sử dụng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Bác nào đang dùng card tầm trung (GTX 1660, RTX 3050, RX 6600…) thì MSI G2712F là lựa chọn rất kinh tế. Full HD nhẹ cho card, game eSports dễ kéo FPS cao để tận dụng trọn 180Hz. Tấm Rapid IPS 27 inch phản hồi 1ms GtG, có Adaptive-Sync nên hình liền mạch, không xé.
+Hàng là màn cũ từ công ty, đã qua sử dụng – bác lưu ý giúp mình.
+Giá mua mới khoảng {giá_mới}, mình bán {giá}, rẻ hơn {tiết_kiệm}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Chơi Valorant, CS2, LOL mà vẫn dùng màn 60Hz là thiệt lắm bác. MSI G2712F 27 inch 180Hz hiển thị số khung hình gấp 3 lần màn 60Hz: đối thủ xuất hiện sớm và rõ hơn, kéo tâm chính xác hơn. Rapid IPS 1ms GtG hạn chế bóng mờ khi xoay camera nhanh.
+Màn đã qua sử dụng, thanh lý lại từ công ty, không phải màn mới nhé bác.
+Màn này mua mới tầm {giá_mới}, bên mình chỉ để {giá} (tiết kiệm {tiết_kiệm}).
+Lỗi 1 đổi 1 trong 1 tháng đầu.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Màn 27 inch cho cả học, làm việc lẫn giải trí: MSI G2712F. 27 inch rộng hơn hẳn 24 inch, xem phim hay chia đôi màn hình làm việc đều thoải mái. Rapid IPS màu tươi, góc nhìn 178° ngồi lệch vẫn không bệt màu. Có chống nháy (Anti-Flicker) và giảm ánh sáng xanh, ngồi lâu đỡ mỏi mắt; 180Hz nên lướt web, kéo chuột cũng rất mượt.
+Nói rõ để bác khỏi nhầm: màn cũ công ty đã qua sử dụng, không phải hàng mới.
+Giá mua mới khoảng {giá_mới} → bên mình {giá}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Nhiều bác hỏi Rapid IPS khác IPS thường thế nào: Rapid IPS dùng tinh thể lỏng đảo trạng thái nhanh hơn, đạt 1ms GtG – nhanh ngang tấm TN mà vẫn giữ màu đẹp và góc nhìn rộng của IPS. MSI G2712F dùng đúng tấm này: 27 inch Full HD, 180Hz, kèm Adaptive-Sync.
+Tình trạng: màn cũ công ty thanh lý, đã qua sử dụng.
+Mua mới khoảng {giá_mới}, mình để lại {giá}, đỡ được {tiết_kiệm}.
+Lỗi 1 đổi 1 trong 1 tháng đầu.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Lên đời từ màn 24 inch 60Hz thì MSI G2712F là nâng cấp đáng tiền nhất trong tầm giá: to hơn 3 inch, mượt gấp 3 lần (180Hz), tấm Rapid IPS màu đẹp hơn hẳn tấm TN/VA đời cũ. Adaptive-Sync giúp game không giật, không xé hình khi FPS lên xuống.
+Lưu ý: đây là màn cũ công ty thanh lý, đã qua sử dụng (không phải hàng mới).
+Giá mua mới khoảng {giá_mới}, bên mình chỉ {giá}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Chỉ khoảng {giá} mà muốn màn 27 inch tần số quét cao thì khó tìm được cấu hình hơn MSI G2712F: Rapid IPS, 1920x1080, 180Hz, 1ms GtG, Adaptive-Sync, góc nhìn 178°.
+Hàng là màn cũ từ công ty, đã qua sử dụng – bác lưu ý giúp mình.
+Giá mua mới hiện khoảng {giá_mới}, bên mình đang bán {giá} – rẻ hơn {tiết_kiệm} mà thông số y hệt.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Bác nào cần thêm màn phụ để làm việc 2 màn hình thì MSI G2712F rất hợp: 27 inch Full HD, viền mỏng, đặt cạnh màn chính gọn gàng; có cả HDMI và DisplayPort, cắm laptop hay PC đều tiện. Rapid IPS màu đều, góc nhìn rộng; cần chơi game thì có sẵn 180Hz.
+Màn đã qua sử dụng, thanh lý lại từ công ty, không phải màn mới nhé bác.
+Mua mới tầm {giá_mới}, mình để {giá}.
+Có lỗi thì 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+MSI G2712F không chỉ hợp PC mà cắm PS5, Xbox Series cũng ngon: màn nhận 120Hz qua HDMI ở Full HD, chơi game console mượt hơn hẳn TV 60Hz. Lên PC thì mở hết 180Hz, tấm Rapid IPS 1ms GtG, Adaptive-Sync chống xé hình.
+Nói rõ để bác khỏi nhầm: màn cũ công ty đã qua sử dụng, không phải hàng mới.
+Giá mua mới khoảng {giá_mới}, bên mình bán {giá}, tiết kiệm {tiết_kiệm}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Chốt nhanh thông số MSI G2712F để bác dễ so sánh:
+• 27 inch, Full HD 1920x1080
+• Rapid IPS, 180Hz, 1ms GtG
+• Adaptive-Sync, góc nhìn 178°, chống nháy
+Tình trạng: màn cũ công ty thanh lý, đã qua sử dụng.
+Giá mua mới: khoảng {giá_mới}
+Bên mình bán: {giá} (tiết kiệm {tiết_kiệm})
+Bảo hành: lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Màn 2K 27 inch 180Hz mà giá chỉ {giá}: MSI G274QPF E2.
+• 2560x1440, mật độ khoảng 109 PPI – chữ, icon, chi tiết game nét hơn rõ so với 27 inch Full HD (khoảng 82 PPI).
+• Rapid IPS + 180Hz + 1ms GtG: vừa đẹp vừa nhanh, chiến FPS hay game thế giới mở đều ngon.
+• Adaptive-Sync chống xé hình.
+Lưu ý: đây là màn cũ công ty thanh lý, đã qua sử dụng (không phải hàng mới).
+Mua mới khoảng {giá_mới}, bên mình để {giá}, tiết kiệm {tiết_kiệm}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Làm việc nhiều cửa sổ thì 27 inch 2K đáng tiền hơn Full HD rất nhiều: số điểm ảnh gấp khoảng 1,8 lần, mở 2 cửa sổ cạnh nhau vẫn đọc rõ. MSI G274QPF E2 còn có 180Hz nên kéo thả, cuộn trang mượt; tối về chiến game cũng sướng nhờ Rapid IPS 1ms.
+Hàng là màn cũ từ công ty, đã qua sử dụng – bác lưu ý giúp mình.
+Giá mua mới khoảng {giá_mới} → bên mình {giá}.
+Lỗi 1 đổi 1 trong 1 tháng đầu.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Bác nào code, làm thiết kế hay dựng video mà vẫn mê game thì MSI G274QPF E2 rất đáng cân nhắc: 2K 27 inch hiển thị được nhiều dòng code hơn, ảnh sắc hơn; tấm Rapid IPS màu đẹp, góc nhìn 178°; lại có 180Hz 1ms GtG cho giờ giải trí.
+Màn đã qua sử dụng, thanh lý lại từ công ty, không phải màn mới nhé bác.
+Mua mới tầm {giá_mới}, mình bán {giá} (rẻ hơn {tiết_kiệm}).
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Đang có RTX 3060 Ti, 4060 Ti hay RX 6700 XT trở lên mà vẫn chơi trên màn Full HD là phí card bác ạ. MSI G274QPF E2 2K 180Hz giúp card phát huy hết sức: hình nét hơn, game eSports vẫn chạy FPS cao. Adaptive-Sync giữ hình mượt khi FPS dao động.
+Nói rõ để bác khỏi nhầm: màn cũ công ty đã qua sử dụng, không phải hàng mới.
+Giá mua mới khoảng {giá_mới}, bên mình chỉ {giá}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Đủ bộ 2K + 180Hz + Rapid IPS mà giá chỉ {giá} thì hiếm bác ạ. MSI G274QPF E2 có: 2560x1440, 180Hz, 1ms GtG, Adaptive-Sync, HDR Ready. So với màn 2K 75Hz văn phòng thì khi chơi game là hai trải nghiệm khác hẳn nhau.
+Tình trạng: màn cũ công ty thanh lý, đã qua sử dụng.
+Mua mới khoảng {giá_mới}, tiết kiệm ngay {tiết_kiệm}.
+Lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Nâng từ 27 inch Full HD lên 2K là khác biệt bác thấy ngay từ lần bật máy đầu tiên: chữ mịn, ảnh nét, không còn thấy rỗ điểm ảnh. MSI G274QPF E2 lên 2K mà vẫn giữ 180Hz, Rapid IPS 1ms GtG – không phải đánh đổi tốc độ để lấy độ nét.
+Lưu ý: đây là màn cũ công ty thanh lý, đã qua sử dụng (không phải hàng mới).
+Giá mua mới khoảng {giá_mới}, bên mình {giá}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Xem phim, YouTube 2K trên màn 27 inch Rapid IPS thì màu lên rất tươi, góc nhìn 178° cả nhà ngồi xem không bị bệt màu. MSI G274QPF E2 hỗ trợ HDR Ready, có chống nháy và giảm ánh sáng xanh để ngồi lâu đỡ mỏi mắt; chơi game thì có 180Hz 1ms GtG.
+Hàng là màn cũ từ công ty, đã qua sử dụng – bác lưu ý giúp mình.
+Mua mới khoảng {giá_mới}, mình để {giá}.
+Lỗi 1 đổi 1 trong 1 tháng đầu.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Thông số nhanh MSI G274QPF E2:
+• 27 inch, 2K 2560x1440 (khoảng 109 PPI)
+• Rapid IPS, 180Hz, 1ms GtG
+• Adaptive-Sync, HDR Ready, góc nhìn 178°
+Màn đã qua sử dụng, thanh lý lại từ công ty, không phải màn mới nhé bác.
+Giá mua mới: khoảng {giá_mới}
+Bên mình bán: {giá} (tiết kiệm {tiết_kiệm})
+Bảo hành: lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Mua màn một lần dùng nhiều năm thì nên lên thẳng 2K bác ạ, sau này nâng card cũng không phải thay màn. MSI G274QPF E2: 27 inch 2K, 180Hz, Rapid IPS 1ms GtG, Adaptive-Sync – cấu hình đủ dùng lâu dài cho cả game lẫn công việc.
+Nói rõ để bác khỏi nhầm: màn cũ công ty đã qua sử dụng, không phải hàng mới.
+Giá mua mới khoảng {giá_mới}, bên mình {giá}, rẻ hơn {tiết_kiệm}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Phân vân giữa 27 inch Full HD và 2K? Full HD ở 27 inch chỉ khoảng 82 PPI, ngồi gần dễ thấy hạt; 2K lên khoảng 109 PPI, mật độ điểm ảnh cao hơn khoảng 33%. MSI G274QPF E2 là 2K nhưng vẫn 180Hz 1ms GtG, chơi game tốc độ cao không thua màn Full HD.
+Tình trạng: màn cũ công ty thanh lý, đã qua sử dụng.
+Mua mới tầm {giá_mới}, mình để {giá}.
+Lỗi 1 đổi 1 trong 1 tháng đầu.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Setup trắng thì không thể bỏ qua MSI G274QRFW – màn 27 inch 2K bản màu trắng.
+• 2560x1440, khoảng 109 PPI, hiển thị nét căng
+• Rapid IPS 170Hz, 1ms GtG: mượt và nhanh, chơi FPS vẫn tốt
+• Adaptive-Sync chống xé hình
+Lưu ý: đây là màn cũ công ty thanh lý, đã qua sử dụng (không phải hàng mới).
+Mua mới khoảng {giá_mới}, bên mình chỉ {giá} – tiết kiệm {tiết_kiệm}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Bác đang build case trắng, bàn phím chuột trắng thì đặt thêm MSI G274QRFW là góc máy đồng bộ ngay. Không chỉ đẹp: màn 27 inch 2K, tấm Rapid IPS 170Hz 1ms GtG, Adaptive-Sync – chơi game hay làm việc đều ổn.
+Hàng là màn cũ từ công ty, đã qua sử dụng – bác lưu ý giúp mình.
+Giá mua mới tầm {giá_mới}, mình bán {giá}.
+Lỗi 1 đổi 1 trong 1 tháng đầu.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Góc làm việc tối giản, tông sáng mà dùng màn đen thì hơi lệch tông bác ạ. MSI G274QRFW bản trắng giải quyết đúng chỗ đó, cấu hình vẫn rất khỏe: 27 inch 2K khoảng 109 PPI, Rapid IPS màu đẹp, 170Hz 1ms GtG, Adaptive-Sync.
+Màn đã qua sử dụng, thanh lý lại từ công ty, không phải màn mới nhé bác.
+Mua mới khoảng {giá_mới}, bên mình để {giá}, rẻ hơn {tiết_kiệm}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Nhiều bác hỏi 170Hz với 180Hz có khác nhiều không: mỗi khung hình chỉ chênh khoảng 0,3ms (5,9ms so với 5,6ms), mắt gần như không phân biệt được. MSI G274QRFW 2K 170Hz vẫn thuộc nhóm màn tần số quét cao, kèm Rapid IPS 1ms GtG và thiết kế trắng rất đẹp.
+Nói rõ để bác khỏi nhầm: màn cũ công ty đã qua sử dụng, không phải hàng mới.
+Mua mới khoảng {giá_mới}, mình để {giá}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Màn trắng 2K 27 inch cho dân văn phòng, thiết kế: MSI G274QRFW. Mật độ khoảng 109 PPI giúp chữ mịn, chỉnh ảnh thấy rõ chi tiết; Rapid IPS màu đẹp, góc nhìn 178°. Có chống nháy và giảm ánh sáng xanh, ngồi cả ngày đỡ mỏi mắt; tối về chơi game có sẵn 170Hz.
+Tình trạng: màn cũ công ty thanh lý, đã qua sử dụng.
+Giá mua mới khoảng {giá_mới}, bên mình {giá}, rẻ hơn {tiết_kiệm}.
+Lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Thông số nhanh MSI G274QRFW (bản trắng):
+• 27 inch, 2K 2560x1440
+• Rapid IPS, 170Hz, 1ms GtG
+• Adaptive-Sync, góc nhìn 178°, chống nháy
+Lưu ý: đây là màn cũ công ty thanh lý, đã qua sử dụng (không phải hàng mới).
+Giá mua mới: khoảng {giá_mới}
+Bên mình bán: {giá} (tiết kiệm {tiết_kiệm})
+Bảo hành: lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Chuyển từ màn Full HD lên MSI G274QRFW bác thấy khác ngay: 2K có mật độ điểm ảnh cao hơn khoảng 33%, 170Hz mượt gần gấp 3 lần màn 60Hz, mà ngoại hình trắng nhìn sang hẳn góc bàn. Tấm Rapid IPS 1ms GtG, có Adaptive-Sync.
+Hàng là màn cũ từ công ty, đã qua sử dụng – bác lưu ý giúp mình.
+Mua mới tầm {giá_mới}, mình chỉ để {giá}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Tìm màn đẹp cho góc học tập, làm việc tông trắng – pastel thì MSI G274QRFW rất hợp: thiết kế trắng gọn gàng, 27 inch 2K hiển thị sắc nét. Bên trong vẫn là cấu hình gaming: Rapid IPS, 170Hz, 1ms GtG, Adaptive-Sync, có chống nháy bảo vệ mắt.
+Màn đã qua sử dụng, thanh lý lại từ công ty, không phải màn mới nhé bác.
+Giá mua mới khoảng {giá_mới}, bên mình bán {giá}.
+Lỗi 1 đổi 1 trong 1 tháng đầu.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Card RTX 4060, 4060 Ti hay RX 7600 chơi 2K rất hợp với MSI G274QRFW: 27 inch 2K 170Hz, Rapid IPS 1ms GtG, Adaptive-Sync giữ hình mượt khi FPS lên xuống. Điểm cộng nữa là thiết kế trắng, ít gặp trong tầm giá này.
+Nói rõ để bác khỏi nhầm: màn cũ công ty đã qua sử dụng, không phải hàng mới.
+Giá mua mới khoảng {giá_mới}, mình bán {giá}, tiết kiệm {tiết_kiệm}.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.
+
+---
+
+Màn trắng thường đắt hơn bản đen vì đẹp, nhưng MSI G274QRFW bên mình chỉ {giá}, trong khi mua mới khoảng {giá_mới} – rẻ hơn {tiết_kiệm}. Cấu hình đầy đủ: 27 inch 2K, Rapid IPS, 170Hz, 1ms GtG, Adaptive-Sync.
+Tình trạng: màn cũ công ty thanh lý, đã qua sử dụng.
+Bảo hành lỗi 1 đổi 1 trong 1 tháng, bác cứ yên tâm.
+Người bán: Hoàng Văn Dũng
+Địa chỉ: 64 Cầu Diễn
+Zalo/Hotline: 0902 189 751.

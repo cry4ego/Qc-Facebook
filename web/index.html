@@ -1,0 +1,958 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QC-Facebook · Quản lý</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --text: #1d2330; --muted: #6b7280; --line: #e5e7eb;
+    --accent: #1877f2; --ok: #16794a; --ok-bg: #e3f5ec; --warn: #9a6200; --warn-bg: #fff3d6;
+    --bad: #b42318; --bad-bg: #fde8e7; --skip: #4b5563; --skip-bg: #eef0f3; --shadow: 0 1px 2px rgba(0,0,0,.06);
+    --info: #1d5fbf; --info-bg: #e5efff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151b; --panel: #1b2029; --text: #e6e8ec; --muted: #9aa3b2; --line: #2b313d;
+      --accent: #4c9bff; --ok: #5fd39a; --ok-bg: #173527; --warn: #f4c25b; --warn-bg: #3a2f14;
+      --bad: #ff8a80; --bad-bg: #3d1d1b; --skip: #b3bac6; --skip-bg: #262c37; --shadow: none;
+      --info: #8ab8ff; --info-bg: #1b2a44;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; }
+  header { background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+  .top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; }
+  h1 { font-size: 18px; margin: 0; font-weight: 650; }
+  h1 span { color: var(--accent); }
+  .grow { flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+          font-size: 13px; background: var(--skip-bg); color: var(--skip); }
+  .pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .pill.running, .pill.idle { background: var(--ok-bg); color: var(--ok); }
+  .pill.stale, .pill.paused { background: var(--warn-bg); color: var(--warn); }
+  .pill.blocked { background: var(--bad-bg); color: var(--bad); }
+  button, .btn { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+                 padding: 6px 12px; border-radius: 8px; cursor: pointer; text-decoration: none; }
+  button:hover, .btn:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.warn { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+  main.wrap { padding-top: 16px; padding-bottom: 40px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); }
+  .tile .n { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tile .l { color: var(--muted); font-size: 13px; }
+  .tile.ok .n { color: var(--ok); } .tile.warn .n { color: var(--warn); } .tile.bad .n { color: var(--bad); }
+  .bar { height: 4px; background: var(--line); border-radius: 4px; margin-top: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+  .filters input, .filters select { font: inherit; padding: 6px 10px; border-radius: 8px;
+                                    border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+  .filters input[type=search] { flex: 1; min-width: 180px; }
+  .muted { color: var(--muted); }
+  .post { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px;
+          box-shadow: var(--shadow); overflow: hidden; }
+  .post.problem { border-left: 4px solid var(--bad); }
+  .post-head { display: grid; grid-template-columns: 70px 1fr auto; gap: 12px; padding: 12px 14px; cursor: pointer; align-items: start; }
+  .time { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .time small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+  .group { font-size: 13px; color: var(--muted); }
+  .ptext { margin: 2px 0 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .badges { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+  .b { font-size: 12px; padding: 2px 8px; border-radius: 6px; white-space: nowrap; background: var(--skip-bg); color: var(--skip); }
+  .b.ok { background: var(--ok-bg); color: var(--ok); }
+  .b.warn { background: var(--warn-bg); color: var(--warn); }
+  .b.bad { background: var(--bad-bg); color: var(--bad); }
+  .b.info { background: var(--info-bg); color: var(--info); }
+  .detail { display: none; border-top: 1px solid var(--line); padding: 12px 14px; gap: 14px;
+            grid-template-columns: 1fr 260px; }
+  .post.open .detail { display: grid; }
+  .comment { display: grid; grid-template-columns: 90px 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .comment:last-child { border-bottom: 0; }
+  .comment img { width: 90px; height: 51px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); }
+  .ctext { white-space: pre-wrap; font-size: 13px; margin: 4px 0 0; }
+  .meta { font-size: 12px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .shot img { width: 100%; border-radius: 8px; border: 1px solid var(--line); cursor: zoom-in; }
+  .shot a { word-break: break-all; font-size: 12px; }
+  a { color: var(--accent); }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+  h2 { font-size: 15px; margin: 24px 0 8px; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 13px; font-variant-numeric: tabular-nums; }
+  th { color: var(--muted); font-weight: 500; }
+  .table-wrap { overflow-x: auto; }
+  #zoom { position: fixed; inset: 0; background: rgba(0,0,0,.8); display: none; align-items: center; justify-content: center; z-index: 10; cursor: zoom-out; padding: 16px; }
+  #zoom img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+  /* tabs */
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tab { border-color: transparent; background: none; color: var(--muted); }
+  .tab.active { background: var(--info-bg); color: var(--info); font-weight: 600; }
+  .note { padding: 10px 12px; border-radius: 10px; font-size: 13px; margin: 0 0 12px; background: var(--skip-bg); color: var(--skip); }
+  .note.ok { background: var(--ok-bg); color: var(--ok); } .note.warn { background: var(--warn-bg); color: var(--warn); }
+  .note.bad { background: var(--bad-bg); color: var(--bad); }
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  button.danger { color: var(--bad); }
+  button.danger:hover { border-color: var(--bad); }
+  /* sản phẩm */
+  .pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+  .pcard { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+           display: flex; flex-direction: column; box-shadow: var(--shadow); }
+  .pcard.off .pimg, .pcard.off .pname { opacity: .55; }
+  .pimg { aspect-ratio: 16 / 10; background: var(--skip-bg); display: flex; align-items: center; justify-content: center; }
+  .pimg img { width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; }
+  .pbody { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .phead { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .pname { font-weight: 650; }
+  .price { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .switch { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; cursor: pointer; }
+  .switch input { width: 16px; height: 16px; accent-color: var(--accent); }
+  details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+  details .ctext { max-height: 220px; overflow: auto; background: var(--bg); padding: 8px 10px; border-radius: 8px; }
+  .pactions { display: flex; gap: 8px; margin-top: auto; padding-top: 4px; }
+  .form-card { background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; padding: 16px;
+               margin-bottom: 16px; display: grid; grid-template-columns: 260px 1fr; gap: 16px; }
+  .form-card h3 { margin: 0 0 8px; font-size: 15px; }
+  .imgpick { aspect-ratio: 16 / 10; border: 2px dashed var(--line); border-radius: 10px; display: flex; align-items: center;
+             justify-content: center; text-align: center; overflow: hidden; cursor: pointer; color: var(--muted); }
+  .imgpick:hover { border-color: var(--accent); }
+  .imgpick img { width: 100%; height: 100%; object-fit: contain; }
+  .row2 { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .field input, .field textarea, .toolbar input[type=text] { width: 100%; font: inherit; padding: 7px 10px; border-radius: 8px;
+             border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  .toolbar input[type=text] { width: auto; flex: 1; min-width: 160px; background: var(--panel); }
+  .field textarea { min-height: 140px; resize: vertical; line-height: 1.45; }
+  .factions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  code { background: var(--skip-bg); padding: 1px 5px; border-radius: 4px; }
+  .err { color: var(--bad); } .okmsg { color: var(--ok); }
+  /* mẫu bình luận */
+  .vpanel { background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; padding: 14px; margin-top: 16px; }
+  .vpanel h3 { margin: 0; font-size: 15px; }
+  .vrow { display: grid; grid-template-columns: 26px 34px 1fr auto; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); align-items: start; }
+  .vrow.off .vtext { opacity: .5; }
+  .vrow input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); margin-top: 3px; }
+  .vnum { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; padding-top: 1px; }
+  .vtext { white-space: pre-wrap; font-size: 13px; }
+  .vmeta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .vedit textarea { width: 100%; min-height: 110px; font: inherit; font-size: 13px; padding: 7px 10px; border-radius: 8px;
+                    border: 1px solid var(--line); background: var(--bg); color: var(--text); resize: vertical; margin-bottom: 6px; }
+  .vedit label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 2px; }
+  .vedit select { font: inherit; font-size: 13px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line);
+                  background: var(--bg); color: var(--text); }
+  .pvar { font-size: 13px; }
+  details.import { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+  details.import summary { font-weight: 600; color: var(--text); font-size: 14px; }
+  @media (max-width: 720px) { .vrow { grid-template-columns: 26px 1fr; } .vrow .vnum { display: none; } .vrow .gact { grid-column: 2; } }
+  /* tiến trình */
+  .prog { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  .prog-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .pill.dead { background: var(--bad-bg); color: var(--bad); }
+  .pbar { position: relative; height: 22px; background: var(--skip-bg); border-radius: 999px; overflow: hidden; }
+  .pbar i { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 999px; transition: width .6s; }
+  .pbar span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px;
+               font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+  .pg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 12px 0 8px; }
+  .pg-grid .lbl { font-size: 12px; color: var(--muted); }
+  .pg-grid > div > div:last-child { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .pg-text { font-size: 13px; background: var(--bg); border-radius: 8px; padding: 8px 10px; white-space: pre-wrap;
+             max-height: 90px; overflow: auto; margin-bottom: 8px; }
+  #pg-log { background: #0d1117; color: #c9d1d9; font: 12px/1.5 Consolas, "Cascadia Mono", monospace; padding: 10px;
+            border-radius: 8px; height: 280px; overflow: auto; margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  #pg-log .e { color: #ff7b72; } #pg-log .w { color: #e3b341; } #pg-log .s { color: #7ee787; } #pg-log .h { color: #79c0ff; font-weight: 600; }
+  /* danh sách nhóm */
+  .lgroups tr.hid td { opacity: .55; }
+  .lgroups input.ed, .lgroups select.ed { font: inherit; font-size: 13px; padding: 4px 6px; border-radius: 6px; width: 100%;
+             border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+  .gact { white-space: nowrap; }
+  .gact button { padding: 2px 8px; font-size: 12px; }
+  #paste-text { width: 100%; min-height: 110px; font: 13px/1.45 Consolas, monospace; padding: 8px 10px; border-radius: 8px;
+                border: 1px solid var(--line); background: var(--bg); color: var(--text); resize: vertical; margin-bottom: 8px; }
+  .toolbar select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+  td input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+  .lgroups td { background: var(--bg); padding: 0; }
+  .lgroups .inner { max-height: 360px; overflow: auto; padding: 8px 10px; }
+  .lgroups table { border: 0; border-radius: 0; }
+  .upload { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 16px; }
+  .upload h3 { margin: 0 0 6px; font-size: 15px; }
+  @media (max-width: 720px) {
+    .form-card { grid-template-columns: 1fr; }
+    .row2 { grid-template-columns: 1fr; }
+    .post-head { grid-template-columns: 1fr; }
+    .badges { flex-direction: row; flex-wrap: wrap; align-items: center; }
+    .detail { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap top">
+    <h1><span>QC</span>-Facebook · Quản lý bình luận</h1>
+    <span id="state" class="pill">Đang tải…</span>
+    <nav class="tabs">
+      <button class="tab" data-tab="log">Bình luận</button>
+      <button class="tab" data-tab="products">Sản phẩm</button>
+      <button class="tab" data-tab="lists">Danh sách nhóm</button>
+    </nav>
+    <div class="grow"></div>
+    <button id="unblock" class="warn" hidden>Bỏ chặn ngay</button>
+    <button id="pause">Tạm dừng</button>
+    <a class="btn" href="/export.xlsx">Tải Excel</a>
+  </div>
+</header>
+
+<main class="wrap">
+<section id="tab-log">
+  <div class="prog">
+    <div class="prog-head">
+      <span id="pg-state" class="pill">Đang tải…</span>
+      <b id="pg-phase"></b>
+      <span id="pg-step" class="muted"></span>
+      <div class="grow"></div>
+      <span id="pg-age" class="muted" style="font-size:12px"></span>
+    </div>
+    <div class="pbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="pg-barwrap"><i id="pg-bar" style="width:0"></i><span id="pg-pct"></span></div>
+    <div class="pg-grid">
+      <div><div class="lbl">Nhóm</div><div id="pg-group">—</div></div>
+      <div><div class="lbl">Bài viết trong nhóm</div><div id="pg-post">—</div></div>
+      <div><div class="lbl">Bình luận đang gửi</div><div id="pg-comment">—</div></div>
+      <div><div class="lbl">Vòng này</div><div id="pg-round">—</div></div>
+    </div>
+    <div id="pg-text" class="pg-text" hidden></div>
+    <div id="pg-last" class="muted" style="font-size:13px"></div>
+    <details id="pg-logwrap" open>
+      <summary>Nhật ký chạy (giống cửa sổ terminal) — <label style="font-size:12px"><input type="checkbox" id="pg-follow" checked> tự cuộn xuống dòng mới</label></summary>
+      <pre id="pg-log"></pre>
+    </details>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="n" id="t-posts">–</div><div class="l" id="t-posts-l">Bài đã bình luận</div><div class="bar" id="t-bar-wrap"><i id="t-bar"></i></div></div>
+    <div class="tile ok"><div class="n" id="t-sent">–</div><div class="l">Bình luận đã đăng</div></div>
+    <div class="tile warn"><div class="n" id="t-pending">–</div><div class="l">Chờ duyệt / không hiển thị</div></div>
+    <div class="tile bad"><div class="n" id="t-bad">–</div><div class="l">Bị chặn / lỗi</div></div>
+    <div class="tile bad"><div class="n" id="t-rejected">–</div><div class="l" id="t-rejected-l">Bị từ chối (đã tự xóa)</div></div>
+    <div class="tile bad"><div class="n" id="t-removed">–</div><div class="l">Bị xóa (kiểm tra lại)</div></div>
+    <div class="tile"><div class="n" id="t-skip">–</div><div class="l">Bỏ qua (đã có bình luận)</div></div>
+  </div>
+
+  <div class="filters">
+    <input type="date" id="f-date">
+    <select id="f-status">
+      <option value="all">Tất cả</option>
+      <option value="problem">Có vấn đề (chặn / chờ duyệt / bị xóa)</option>
+      <option value="ok">Hoàn tất</option>
+      <option value="skip">Bỏ qua</option>
+    </select>
+    <input type="search" id="f-q" placeholder="Tìm theo nhóm, nội dung bài, link…">
+    <label class="muted"><input type="checkbox" id="f-auto" checked> Tự làm mới</label>
+  </div>
+
+  <div id="posts"></div>
+
+  <h2>Bản không SĐT/địa chỉ</h2>
+  <p class="muted" style="margin-top:0">Bình luận bị từ chối được <b>tự xóa ngay</b> và gửi lại bằng bản <b>không có SĐT và địa chỉ</b>;
+    nhóm đó từ nay dùng bản này. Nếu bản không SĐT cũng bị từ chối, script xóa và <b>ngừng bình luận nhóm đó</b>.
+    Nếu Facebook báo bị chặn thì mọi nhóm chuyển sang bản không SĐT.</p>
+  <div id="safe"></div>
+
+  <h2>Tự tham gia nhóm</h2>
+  <p class="muted" style="margin-top:0">Cuối mỗi vòng, script tự bấm <b>Tham gia nhóm</b> các nhóm chưa tham gia. Nhóm có
+    câu hỏi duyệt thành viên: điền <b>"ok"</b> vào mọi ô và tick hết các ô rồi gửi. Vòng sau sẽ bình luận các nhóm đã vào.
+    <span id="joins-today"></span></p>
+  <div id="joins"></div>
+
+  <h2>Vòng quét gần đây</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Bắt đầu</th><th>Kết thúc</th><th>Nhóm đã quét</th><th>Bài được chọn</th><th>Đã bình luận</th><th>Ghi chú</th></tr></thead>
+      <tbody id="runs"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="tab-products" hidden>
+  <div class="toolbar">
+    <h2 style="margin:0">Sản phẩm bình luận</h2>
+    <div class="grow"></div>
+    <button class="primary" id="p-add">＋ Thêm sản phẩm</button>
+  </div>
+  <p id="p-note" class="note"></p>
+  <details class="import" id="v-import">
+    <summary>Nhập mẫu bình luận từ file (.txt)</summary>
+    <p class="muted" style="font-size:13px">Các mẫu trong file cách nhau bằng 1 dòng <code>---</code>. File thứ 2 (không liên hệ) ghép
+      theo đúng thứ tự với file thứ nhất. Script tự nhận mẫu thuộc sản phẩm nào theo mã máy (vd G2712F) và giá; mẫu đã có sẽ bỏ qua.</p>
+    <form id="v-import-form" class="toolbar" style="margin:0">
+      <label class="muted">Bản đầy đủ (có liên hệ) * <input type="file" name="full" accept=".txt" required></label>
+      <label class="muted">Bản không liên hệ <input type="file" name="safe" accept=".txt"></label>
+      <label class="muted">Sản phẩm <select name="product_id" id="v-import-product"></select></label>
+      <button type="submit" class="primary">Nhập mẫu</button>
+      <span id="v-import-msg"></span>
+    </form>
+  </details>
+  <form id="p-form" class="form-card" hidden>
+    <div>
+      <label class="imgpick" for="p-image" id="p-pick"><img id="p-preview" alt="" hidden><span id="p-pick-t">Bấm để chọn ảnh sản phẩm<br><small>.jpg · .png · .webp</small></span></label>
+      <input type="file" id="p-image" name="image" accept=".jpg,.jpeg,.png,.webp" hidden>
+      <p class="muted" style="font-size:12px">Ảnh được đăng kèm bình luận của sản phẩm này.</p>
+    </div>
+    <div>
+      <h3 id="p-form-title">Thêm sản phẩm</h3>
+      <div class="row2">
+        <div class="field"><label for="p-name">Tên sản phẩm *</label><input id="p-name" name="name" required placeholder="vd MSI G2712F 27&quot;"></div>
+        <div class="field"><label for="p-price">Giá đang bán</label><input id="p-price" name="price" placeholder="vd 1.600.000đ"></div>
+      </div>
+      <div class="row2">
+        <div></div>
+        <div class="field"><label for="p-newprice">Giá mua mới (để so sánh)</label><input id="p-newprice" name="new_price" placeholder="vd 3.290.000đ"></div>
+      </div>
+      <div id="p-first">
+      <div class="field"><label for="p-text">Mẫu bình luận đầu tiên — bản đầy đủ (có SĐT, địa chỉ). Thêm nhiều mẫu sau ở nút “Mẫu bình luận”</label>
+        <textarea id="p-text" name="text" placeholder="Tên màn – tấm nền, độ phân giải, tần số quét…&#10;Công nghệ nổi bật…&#10;Giá {giá} – bảo hành…&#10;Địa chỉ: 64 Cầu Diễn. Zalo/Hotline: 0902 189 751."></textarea></div>
+      <div class="field"><label for="p-safe">Bản không SĐT/địa chỉ — dùng khi nhóm từ chối bản có SĐT. <b>Để trống</b> = tự bỏ các dòng có SĐT, địa chỉ, Zalo</label>
+        <textarea id="p-safe" name="safe_text" placeholder="(tự tạo từ bản đầy đủ nếu để trống)"></textarea></div>
+      <p class="muted" style="font-size:12px;margin-top:0">Chỗ trống tự điền: <code>{giá}</code> giá đang bán, <code>{giá_mới}</code> giá mua mới, <code>{tiết_kiệm}</code> số tiền rẻ hơn.</p>
+      </div>
+      <div class="factions"><button type="submit" class="primary">Lưu sản phẩm</button><button type="button" id="p-cancel">Hủy</button><span id="p-msg"></span></div>
+    </div>
+  </form>
+  <div id="p-grid" class="pgrid"></div>
+  <div id="v-panel" class="vpanel" hidden></div>
+</section>
+
+<section id="tab-lists" hidden>
+  <h2 style="margin-top:0">Danh sách nhóm (file Excel)</h2>
+  <p id="l-note" class="note"></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Dùng</th><th>Ưu tiên</th><th>Danh sách</th><th>Số nhóm</th><th id="l-region-h">Chỉ nhóm Hà Nội</th><th>Thêm lúc</th><th></th></tr></thead>
+      <tbody id="l-rows"></tbody>
+    </table>
+  </div>
+  <div class="upload">
+    <h3>Dán link nhóm</h3>
+    <p class="muted" style="margin-top:0;font-size:13px">Mỗi dòng 1 link, có thể kèm tên: <code>https://www.facebook.com/groups/abc | Tên nhóm</code>.
+      Dán cả đoạn văn có lẫn link cũng được — script tự lọc link nhóm, bỏ link trùng. Link chưa có tên sẽ tự hiện tên sau khi script mở nhóm đó.</p>
+    <textarea id="paste-text" placeholder="https://www.facebook.com/groups/manhinhhanoi | MUA BÁN MÀN HÌNH MÁY TÍNH HÀ NỘI&#10;https://www.facebook.com/groups/123456789"></textarea>
+    <div class="toolbar" style="margin:0">
+      <label class="muted">Thêm vào <select id="paste-target"></select></label>
+      <input type="text" id="paste-newname" placeholder="Tên danh sách mới" value="Nhóm dán thêm">
+      <button class="primary" id="paste-btn">Thêm link</button>
+      <span id="paste-msg"></span>
+    </div>
+  </div>
+
+  <form id="l-form" class="upload">
+    <h3>Thêm file Excel nhóm mới</h3>
+    <p class="muted" style="margin-top:0;font-size:13px">File <b>.xlsx</b> hoặc <b>.csv</b>, chỉ cần 1 cột chứa link nhóm
+      (<code>https://www.facebook.com/groups/…</code>). Nếu có cột tên nhóm, số thành viên, mức hoạt động thì script tự nhận
+      để xếp ưu tiên. Nhóm chưa tham gia sẽ được tự tham gia cuối vòng.</p>
+    <div class="toolbar" style="margin:0">
+      <input type="file" name="file" accept=".xlsx,.csv" required>
+      <input type="text" name="name" placeholder="Tên danh sách (không bắt buộc)">
+      <button type="submit" class="primary">Tải lên</button>
+      <span id="l-msg"></span>
+    </div>
+  </form>
+</section>
+</main>
+
+<div id="zoom"><img alt=""></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const hm = s => s ? s.slice(11, 16) : "";
+const open = new Set();
+let summaryCache = null;
+
+function cls(status) {
+  if (!status) return "";
+  if (/^(Đã đăng|Hoàn tất|Còn đủ)/.test(status)) return "ok";
+  if (/^(Chờ duyệt|Một phần|Chỉ còn|Đang)/.test(status)) return "warn";
+  if (/^(Bị chặn|Bị từ chối|Lỗi|Thất bại|Không thấy|Ngừng)/.test(status)) return "bad";
+  return "";
+}
+
+async function loadSummary() {
+  const s = await (await fetch(`/api/summary?date=${$("#f-date").value}`)).json();
+  summaryCache = s;
+  $("#t-posts").textContent = s.daily_limit ? `${s.posts_commented}/${s.daily_limit}` : s.posts_commented;
+  $("#t-posts-l").textContent = s.daily_limit ? "Bài đã bình luận"
+    : "Bài đã bình luận (không giới hạn)";
+  $("#t-bar-wrap").hidden = !s.daily_limit;
+  if (s.daily_limit) $("#t-bar").style.width = Math.min(100, s.posts_commented / s.daily_limit * 100) + "%";
+  $("#joins-today").textContent = `Hôm nay đã tự bấm tham gia ${s.joins_today}/${s.join_limit} nhóm.`;
+  $("#t-sent").textContent = s.comments_sent;
+  $("#t-pending").textContent = s.comments_pending;
+  $("#t-bad").textContent = s.comments_blocked + s.comments_error;
+  $("#t-removed").textContent = s.removed;
+  $("#t-rejected").textContent = s.comments_rejected;
+  $("#t-rejected-l").textContent = s.comments_rejected_left
+    ? `Bị từ chối — ${s.comments_rejected_left} chưa xóa được, cần xóa tay` : "Bị từ chối (đã tự xóa)";
+  $("#t-skip").textContent = s.posts_skipped;
+
+  const st = $("#state");
+  if (s.blocked_until) { st.className = "pill blocked"; st.textContent = `Bị Facebook chặn — nghỉ tới ${s.blocked_until.slice(11,16)} ${s.blocked_until.slice(8,10)}/${s.blocked_until.slice(5,7)}`; }
+  else if (s.paused) { st.className = "pill paused"; st.textContent = "Đang tạm dừng"; }
+  else { st.className = "pill " + s.script.state; st.textContent = s.script.text; }
+  $("#unblock").hidden = !s.blocked_until;
+  $("#pause").textContent = s.paused ? "Tiếp tục chạy" : "Tạm dừng";
+  $("#pause").className = s.paused ? "primary" : "";
+}
+
+function renderPost(p) {
+  const q = $("#f-q").value.trim().toLowerCase();
+  if (q && !`${p.group_name} ${p.post_text} ${p.post_url}`.toLowerCase().includes(q)) return "";
+  const sent = p.comments.filter(c => c.status === "Đã đăng").length;
+  const comments = p.comments.map(c => `
+    <div class="comment">
+      ${c.image ? `<img src="/images/${encodeURIComponent(c.image)}" alt="${esc(c.image)}" loading="lazy">` : "<div></div>"}
+      <div>
+        <div class="meta"><b>Bình luận ${c.idx}</b><span class="b ${cls(c.status)}">${esc(c.status)}</span>
+          ${c.variant ? `<span class="b ${c.variant === "Đầy đủ" ? "" : "info"}">${esc(c.variant)}</span>` : ""}
+          <span>${esc(c.sent_at)}</span>${c.detail ? `<span>· ${esc(c.detail)}</span>` : ""}</div>
+        <p class="ctext">${esc(c.text)}</p>
+      </div>
+    </div>`).join("") || `<p class="muted">Không gửi bình luận nào.</p>`;
+  return `
+  <div class="post ${p.problem ? "problem" : ""} ${open.has(p.id) ? "open" : ""}" data-id="${p.id}">
+    <div class="post-head">
+      <div class="time">${hm(p.found_at)}<small>${p.post_age_min != null ? `bài đăng ${p.post_age_min}′` : ""}</small></div>
+      <div>
+        <div class="group">${esc(p.group_name)}</div>
+        <p class="ptext">${esc(p.post_text) || '<span class="muted">(không có nội dung chữ)</span>'}</p>
+      </div>
+      <div class="badges">
+        <span class="b ${cls(p.status)}">${esc(p.status)}${p.comments.length ? ` · ${sent}/${p.comments.length}` : ""}</span>
+        ${p.verify_result ? `<span class="b ${cls(p.verify_result)}">↻ ${esc(p.verify_result)}</span>` : (p.comments.length ? '<span class="b">Chưa kiểm tra lại</span>' : "")}
+      </div>
+    </div>
+    <div class="detail">
+      <div>${comments}</div>
+      <div class="shot">
+        <a href="${esc(p.post_url)}" target="_blank" rel="noopener">Mở bài viết ↗</a>
+        ${p.screenshot ? `<p><img src="/screenshots/${encodeURIComponent(p.screenshot)}" alt="Ảnh chụp bài sau khi bình luận" loading="lazy"></p>` : ""}
+        ${p.verified_at ? `<p class="muted">Kiểm tra lại lúc ${esc(p.verified_at)}</p>` : ""}
+      </div>
+    </div>
+  </div>`;
+}
+
+let postsCache = [];
+async function loadPosts() {
+  postsCache = await (await fetch(`/api/posts?date=${$("#f-date").value}&status=${$("#f-status").value}`)).json();
+  drawPosts();
+}
+function drawPosts() {
+  const html = postsCache.map(renderPost).join("");
+  $("#posts").innerHTML = html || `<div class="empty">Chưa có bài nào được xử lý trong ngày này.</div>`;
+}
+
+async function loadRuns() {
+  const runs = await (await fetch("/api/runs")).json();
+  $("#runs").innerHTML = runs.map(r => `<tr>
+    <td>${esc(r.started_at)}</td><td>${r.finished_at ? esc(hm(r.finished_at)) : '<span class="b warn">đang chạy</span>'}</td>
+    <td>${r.groups_scanned}</td><td>${r.new_posts}</td><td>${r.commented_posts}</td><td>${esc(r.note)}</td></tr>`).join("")
+    || `<tr><td colspan="6" class="muted">Chưa có lượt quét nào.</td></tr>`;
+}
+
+async function loadSafe() {
+  const s = await (await fetch("/api/safe")).json();
+  const head = s.all
+    ? `<p><span class="b info">Đang dùng cho MỌI nhóm</span> <span class="muted">${esc(s.all_reason)}</span></p>`
+    : "";
+  const rows = s.groups.map(g => `<tr><td>${esc(g.group_name)}
+      ${g.stop ? '<br><span class="b bad">Ngừng bình luận — từ chối cả bản không SĐT</span>' : ""}</td>
+    <td>${esc(g.since)}</td><td>${esc(g.reason)}</td>
+    <td><button data-reset="${esc(g.group_url)}">${g.stop ? "Bình luận lại (bản đầy đủ)" : "Dùng lại bản đầy đủ"}</button></td></tr>`).join("");
+  $("#safe").innerHTML = head + (rows || s.all
+    ? `<div class="table-wrap"><table><thead><tr><th>Nhóm</th><th>Từ lúc</th><th>Lý do</th><th></th></tr></thead>
+       <tbody>${rows || '<tr><td colspan="4" class="muted">—</td></tr>'}</tbody></table></div>
+       <p><button data-reset="">Đặt lại tất cả về bản đầy đủ</button></p>`
+    : `<p class="muted">Chưa có nhóm nào — mọi nhóm đang dùng bản đầy đủ (có SĐT/địa chỉ).</p>`);
+}
+
+async function loadJoins() {
+  const rows = await (await fetch("/api/joins")).json();
+  $("#joins").innerHTML = rows.length
+    ? `<div class="table-wrap"><table><thead><tr><th>Nhóm</th><th>Trạng thái</th><th>Ghi chú</th><th>Bấm tham gia lúc</th><th>Kiểm tra lúc</th></tr></thead>
+       <tbody>${rows.map(r => `<tr><td><a href="${esc(r.group_url)}" target="_blank" rel="noopener">${esc(r.group_name || r.group_url)}</a></td>
+         <td><span class="b ${r.status === "Đã tham gia" ? "ok" : r.status === "Chờ duyệt" ? "warn" : "bad"}">${esc(r.status)}</span></td>
+         <td>${esc(r.note)}</td><td>${esc(r.clicked_at || "—")}</td><td>${esc(r.checked_at)}</td></tr>`).join("")}</tbody></table></div>`
+    : `<p class="muted">Chưa có dữ liệu — sẽ hiện sau vòng quét đầu tiên.</p>`;
+}
+
+const refresh = () => Promise.all([loadSummary(), loadPosts(), loadRuns(), loadSafe(), loadJoins()]);
+
+$("#safe").addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-reset]");
+  if (!btn) return;
+  const url = btn.dataset.reset;
+  if (!confirm(url ? "Nhóm này dùng lại bản có SĐT/địa chỉ?" : "Mọi nhóm dùng lại bản có SĐT/địa chỉ?")) return;
+  await fetch("/api/safe/reset", {method: "POST", headers: {"Content-Type": "application/json"},
+                                  body: JSON.stringify({group_url: url})});
+  loadSafe();
+});
+
+$("#posts").addEventListener("click", e => {
+  if (e.target.closest("a")) return;
+  const img = e.target.closest(".shot img");
+  if (img) { $("#zoom img").src = img.src; $("#zoom").style.display = "flex"; return; }
+  const head = e.target.closest(".post-head");
+  if (!head) return;
+  const card = head.parentElement, id = +card.dataset.id;
+  open.has(id) ? open.delete(id) : open.add(id);
+  card.classList.toggle("open");
+});
+$("#zoom").addEventListener("click", () => $("#zoom").style.display = "none");
+$("#pause").addEventListener("click", async () => {
+  await fetch("/api/pause", {method: "POST", headers: {"Content-Type": "application/json"},
+                             body: JSON.stringify({paused: !summaryCache?.paused})});
+  loadSummary();
+});
+$("#unblock").addEventListener("click", async () => {
+  if (!confirm("Bỏ chặn ngay? Facebook vừa hạn chế bình luận, chạy tiếp sớm có thể bị chặn lâu hơn.")) return;
+  await fetch("/api/unblock", {method: "POST"});
+  loadSummary();
+});
+$("#f-date").addEventListener("change", refresh);
+$("#f-status").addEventListener("change", loadPosts);
+$("#f-q").addEventListener("input", drawPosts);
+
+
+// ---------- Tiến trình ----------
+const fmtAgo = s => s == null ? "" : s < 60 ? `${s} giây trước` : s < 3600 ? `${Math.floor(s / 60)} phút trước` : `${Math.floor(s / 3600)} giờ trước`;
+const countdown = t => {
+  if (!t) return "";
+  const s = Math.round((new Date(t.replace(" ", "T")) - Date.now()) / 1000);
+  return s > 0 ? (s >= 60 ? `còn ${Math.floor(s / 60)} phút ${s % 60} giây` : `còn ${s} giây`) : "";
+};
+async function loadProgress() {
+  const p = await (await fetch("/api/progress")).json();
+  const st = $("#pg-state");
+  if (!p.alive) { st.className = "pill dead"; st.textContent = "Script đã tắt"; }
+  else if (p.paused) { st.className = "pill paused"; st.textContent = "Tạm dừng"; }
+  else { st.className = "pill running"; st.textContent = "Đang chạy"; }
+  $("#pg-phase").textContent = p.alive ? (p.phase || "") : "Bấm đúp chay-ngam.bat để chạy lại";
+  const waiting = p.next_at && /Chờ|Nghỉ|Tạm dừng|chặn|sắp/.test(`${p.phase} ${p.step}`);
+  $("#pg-step").textContent = p.alive ? [p.step, waiting ? countdown(p.next_at) : ""].filter(Boolean).join(" · ") : "";
+  $("#pg-age").textContent = p.updated_at ? `cập nhật ${fmtAgo(p.age)}` : "";
+  const joining = p.phase === "Tham gia nhóm" && p.join_total;
+  const pct = joining ? Math.round(100 * (p.join_i - 1) / p.join_total) : (p.percent ?? 0);
+  $("#pg-bar").style.width = `${Math.min(100, pct)}%`;
+  $("#pg-barwrap").setAttribute("aria-valuenow", pct);
+  $("#pg-pct").textContent = joining ? `Tham gia nhóm ${p.join_i}/${p.join_total}` : `${pct}% vòng quét`;
+  $("#pg-group").innerHTML = p.group_total
+    ? `<b>${p.group_i || 0}/${p.group_total}</b>${p.group_name ? ` · <a href="${esc(p.group_url)}" target="_blank" rel="noopener">${esc(p.group_name)}</a>` : ""}` : "—";
+  $("#pg-post").innerHTML = p.post_total
+    ? `<b>${p.post_i || 0}/${p.post_total}</b>${p.post_topic ? ` · ${esc(p.post_topic)}` : ""}${p.post_age != null && p.post_i ? ` · đăng ${p.post_age} phút trước` : ""}`
+    : (p.phase === "Quét nhóm" ? "đang tìm bài mới…" : "—");
+  $("#pg-comment").innerHTML = p.comment_total && p.comment_i
+    ? `<b>${p.comment_i}/${p.comment_total}</b>${p.product ? ` · ${esc(p.product)}` : ""}` : "—";
+  $("#pg-round").innerHTML = p.round_started
+    ? `bắt đầu ${esc(p.round_started.slice(11, 16))} · <b>${p.commented || 0}</b> bài đã bình luận / ${p.posts_found || 0} bài tìm thấy` : "—";
+  const txt = $("#pg-text");
+  txt.hidden = !(p.alive && p.post_text);
+  if (!txt.hidden) txt.innerHTML = `${esc(p.post_text)}\n<a href="${esc(p.post_url)}" target="_blank" rel="noopener">Mở bài đang bình luận ↗</a>`;
+  $("#pg-last").innerHTML = p.last_result
+    ? `Bài vừa xong: ${esc(p.last_result)} — <a href="${esc(p.last_url)}" target="_blank" rel="noopener">mở ↗</a>` : "";
+}
+async function loadLog() {
+  if (!$("#pg-logwrap").open) return;
+  const lines = await (await fetch("/api/log?n=200")).json();
+  const box = $("#pg-log");
+  const cls = l => / - ERROR - |✗|⛔/.test(l) ? "e" : / - WARNING - |⇢|↷/.test(l) ? "w"
+    : /✓|Đã đăng|Hoàn tất|➕/.test(l) ? "s" : /===|→ \[|🚀/.test(l) ? "h" : "";
+  box.innerHTML = lines.map(l => `<span class="${cls(l)}">${esc(l.replace(/^\d{4}-\d\d-\d\d (\d\d:\d\d:\d\d),\d+ - (INFO|WARNING|ERROR) - /, "$1  "))}</span>`).join("\n");
+  if ($("#pg-follow").checked) box.scrollTop = box.scrollHeight;
+}
+$("#pg-logwrap").addEventListener("toggle", loadLog);
+
+// ---------- Tabs ----------
+const TABS = ["log", "products", "lists"];
+function showTab(t) {
+  TABS.forEach(x => {
+    $(`#tab-${x}`).hidden = x !== t;
+    document.querySelector(`.tab[data-tab="${x}"]`).classList.toggle("active", x === t);
+  });
+  history.replaceState(null, "", "#" + t);
+  if (t === "products") loadProducts();
+  if (t === "lists") loadLists();
+  if (t === "log") { refresh(); loadProgress(); loadLog(); }
+}
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+window.addEventListener("hashchange", () => { const t = location.hash.slice(1); if (TABS.includes(t)) showTab(t); });
+const postForm = async (url, data, method = "POST") => {
+  const r = await fetch(url, {method, body: data});
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `Lỗi ${r.status}`);
+  return j;
+};
+const postJSON = (url, obj) => fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(obj)});
+
+// ---------- Sản phẩm ----------
+let productsCache = [], editingId = null;
+async function loadProducts() {
+  productsCache = await (await fetch("/api/products")).json();
+  drawProducts();
+}
+function drawProducts() {
+  const on = productsCache.filter(p => p.active && p.variants_active).length;
+  const note = $("#p-note");
+  note.className = "note " + (on === 0 ? "bad" : on > 3 ? "warn" : "ok");
+  note.innerHTML = on === 0
+    ? "Chưa có sản phẩm nào vừa được bật vừa có mẫu bình luận đang bật — script sẽ <b>không bình luận</b>."
+    : `<b>${on}</b> sản phẩm đang bật → mỗi bài viết nhận <b>${on}</b> bình luận (mỗi sản phẩm 1 bình luận kèm ảnh,
+       nội dung chọn <b>ngẫu nhiên</b> trong các mẫu đang bật, không trùng nhau trong 1 bài, tránh lặp lại trong cùng nhóm).`
+      + (on > 3 ? " Nhiều bình luận liên tiếp vào 1 bài dễ bị nhóm coi là spam — nên bật tối đa 3." : "")
+      + " Thay đổi áp dụng từ bài viết tiếp theo, không cần khởi động lại script.";
+  $("#p-grid").innerHTML = productsCache.map(p => `
+    <article class="pcard ${p.active ? "" : "off"}" data-id="${p.id}">
+      <div class="pimg">${p.image_ok ? `<img src="/images/${encodeURIComponent(p.image)}" alt="${esc(p.name)}" loading="lazy">`
+                                     : '<span class="muted">Chưa có ảnh</span>'}</div>
+      <div class="pbody">
+        <div class="phead">
+          <div><div class="pname">${esc(p.name)}</div>${p.price ? `<div class="price">${esc(p.price)}</div>` : ""}
+            ${p.new_price ? `<div class="muted" style="font-size:12px">Giá mua mới: <s>${esc(p.new_price)}</s></div>` : ""}</div>
+          <label class="switch"><input type="checkbox" data-act="toggle" ${p.active ? "checked" : ""}>
+            <span>${p.active ? "Bình luận sản phẩm này" : "Đang tắt"}</span></label>
+        </div>
+        <div class="pvar">${p.variants_total
+          ? `<b>${p.variants_active}</b>/${p.variants_total} mẫu bình luận đang bật — mỗi bài chọn ngẫu nhiên 1 mẫu`
+          : '<span class="err">Chưa có mẫu bình luận nào</span>'}</div>
+        <div class="pactions"><button data-act="variants" class="primary">Mẫu bình luận (${p.variants_total})</button>
+          <button data-act="edit">Sửa</button><button data-act="delete" class="danger">Xóa</button></div>
+      </div>
+    </article>`).join("") || `<div class="empty">Chưa có sản phẩm nào — bấm “＋ Thêm sản phẩm”.</div>`;
+  $("#v-import-product").innerHTML = '<option value="">Tự nhận theo mã máy & giá</option>'
+    + productsCache.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join("");
+  if (variantsOf) loadVariants();
+}
+function openProductForm(p) {
+  editingId = p ? p.id : null;
+  const f = $("#p-form");
+  f.reset();
+  $("#p-form-title").textContent = p ? `Sửa: ${p.name}` : "Thêm sản phẩm";
+  $("#p-name").value = p?.name || "";
+  $("#p-price").value = p?.price || "";
+  $("#p-newprice").value = p?.new_price || "";
+  $("#p-text").value = "";
+  $("#p-safe").value = "";
+  $("#p-first").hidden = !!p;  // sửa sản phẩm: nội dung bình luận nằm ở “Mẫu bình luận”
+  const img = $("#p-preview");
+  img.hidden = !(p && p.image_ok);
+  if (p && p.image_ok) img.src = `/images/${encodeURIComponent(p.image)}`;
+  $("#p-pick-t").hidden = !img.hidden;
+  $("#p-msg").textContent = "";
+  f.hidden = false;
+  f.scrollIntoView({behavior: "smooth", block: "start"});
+  $("#p-name").focus();
+}
+$("#p-add").addEventListener("click", () => openProductForm(null));
+$("#p-cancel").addEventListener("click", () => { $("#p-form").hidden = true; });
+$("#p-image").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const img = $("#p-preview");
+  img.src = URL.createObjectURL(file);
+  img.hidden = false;
+  $("#p-pick-t").hidden = true;
+});
+$("#p-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("#p-msg");
+  msg.className = ""; msg.textContent = "Đang lưu…";
+  try {
+    await postForm(editingId ? `/api/products/${editingId}` : "/api/products", new FormData(e.target));
+    $("#p-form").hidden = true;
+    await loadProducts();
+  } catch (err) { msg.className = "err"; msg.textContent = err.message; }
+});
+$("#p-grid").addEventListener("click", async e => {
+  const img = e.target.closest(".pimg img");
+  if (img) { $("#zoom img").src = img.src; $("#zoom").style.display = "flex"; return; }
+  const btn = e.target.closest("[data-act]");
+  if (!btn || btn.dataset.act === "toggle") return;
+  const p = productsCache.find(x => x.id === +btn.closest(".pcard").dataset.id);
+  if (btn.dataset.act === "edit") openProductForm(p);
+  if (btn.dataset.act === "variants") { variantsOf = p.id; vEditing = null; await loadVariants(); $("#v-panel").scrollIntoView({behavior: "smooth"}); }
+  if (btn.dataset.act === "delete" && confirm(`Xóa sản phẩm “${p.name}”?`)) {
+    await fetch(`/api/products/${p.id}`, {method: "DELETE"});
+    loadProducts();
+  }
+});
+$("#p-grid").addEventListener("change", async e => {
+  if (e.target.dataset.act !== "toggle") return;
+  const id = +e.target.closest(".pcard").dataset.id;
+  await postJSON(`/api/products/${id}/active`, {active: e.target.checked});
+  loadProducts();
+});
+
+// ---------- Mẫu bình luận ----------
+let variantsOf = null, variantsCache = [], vEditing = null;  // vEditing: id mẫu đang sửa, "new" = thêm mới
+async function loadVariants() {
+  const p = productsCache.find(x => x.id === variantsOf);
+  if (!p) { variantsOf = null; $("#v-panel").hidden = true; return; }
+  variantsCache = await (await fetch(`/api/products/${p.id}/variants`)).json();
+  const on = variantsCache.filter(v => v.active).length;
+  const form = v => `<div class="vedit">
+      <label>Bản đầy đủ (có SĐT, địa chỉ) *</label><textarea data-f="text">${esc(v?.text || "")}</textarea>
+      <label>Bản không SĐT/địa chỉ — để trống = tự bỏ các dòng có SĐT, địa chỉ, Zalo</label><textarea data-f="safe_text">${esc(v?.safe_text || "")}</textarea>
+      ${v ? `<label>Thuộc sản phẩm</label><select data-f="product_id">${productsCache.map(x =>
+        `<option value="${x.id}" ${x.id === p.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select>` : ""}
+    </div>`;
+  $("#v-panel").hidden = false;
+  $("#v-panel").innerHTML = `
+    <div class="toolbar">
+      <h3>Mẫu bình luận — ${esc(p.name)} <span class="muted" style="font-weight:400">(${on}/${variantsCache.length} đang bật)</span></h3>
+      <div class="grow"></div>
+      <button class="primary" data-vact="new">＋ Thêm mẫu</button>
+      <button data-vact="all-on">Bật hết</button><button data-vact="all-off">Tắt hết</button>
+      <button data-vact="close">Đóng</button>
+    </div>
+    <p class="muted" style="font-size:13px;margin:0 0 6px">Tick để chọn mẫu được dùng. Mỗi bài viết script chọn ngẫu nhiên 1 mẫu đang bật
+      (ưu tiên mẫu ít dùng, tránh mẫu vừa dùng trong cùng nhóm). Chỗ trống tự điền: <code>{giá}</code> giá đang bán,
+      <code>{giá_mới}</code> giá mua mới, <code>{tiết_kiệm}</code> số tiền rẻ hơn (sửa giá ở nút “Sửa” sản phẩm). Thay đổi áp dụng từ bài tiếp theo.</p>
+    ${vEditing === "new" ? `<div class="vrow" data-vid="new"><div></div><div class="vnum">mới</div>${form(null)}
+      <div class="gact"><button class="primary" data-vact="save">Lưu</button> <button data-vact="cancel">Hủy</button></div></div>` : ""}
+    ${variantsCache.map((v, i) => vEditing === v.id ? `
+      <div class="vrow" data-vid="${v.id}"><div></div><div class="vnum">#${i + 1}</div>${form(v)}
+        <div class="gact"><button class="primary" data-vact="save">Lưu</button> <button data-vact="cancel">Hủy</button></div></div>` : `
+      <div class="vrow ${v.active ? "" : "off"}" data-vid="${v.id}">
+        <input type="checkbox" data-vact="toggle" ${v.active ? "checked" : ""} aria-label="Dùng mẫu này">
+        <div class="vnum">#${i + 1}</div>
+        <div><div class="vtext">${esc(v.text_preview)}</div>
+          <details><summary>Bản không SĐT/địa chỉ ${v.safe_auto ? '<span class="b">tự tạo</span>' : ""}</summary><p class="ctext">${esc(v.safe_preview)}</p></details>
+          <div class="vmeta">Đã dùng ${v.used_count} lần${v.last_used_at ? ` · lần cuối ${esc(v.last_used_at.slice(5, 16))}` : ""}</div></div>
+        <div class="gact"><button data-vact="edit">Sửa</button> <button data-vact="del" class="danger">Xóa</button></div>
+      </div>`).join("") || (vEditing === "new" ? "" : '<p class="muted">Chưa có mẫu nào — bấm “＋ Thêm mẫu” hoặc nhập từ file ở trên.</p>')}`;
+}
+$("#v-panel").addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-vact]");
+  if (!btn) return;
+  const act = btn.dataset.vact, row = btn.closest(".vrow"), vid = row?.dataset.vid;
+  const refresh = async () => { await loadProducts(); };
+  if (act === "close") { variantsOf = null; vEditing = null; $("#v-panel").hidden = true; return; }
+  if (act === "new") { vEditing = "new"; return loadVariants(); }
+  if (act === "edit") { vEditing = +vid; return loadVariants(); }
+  if (act === "cancel") { vEditing = null; return loadVariants(); }
+  if (act === "all-on" || act === "all-off") {
+    await postJSON(`/api/products/${variantsOf}/variants/active`, {active: act === "all-on"});
+    return refresh();
+  }
+  if (act === "del") {
+    if (!confirm("Xóa mẫu bình luận này?")) return;
+    await fetch(`/api/variants/${vid}`, {method: "DELETE"});
+    return refresh();
+  }
+  if (act === "save") {
+    const data = {};
+    row.querySelectorAll("[data-f]").forEach(el => data[el.dataset.f] = el.value);
+    const r = vid === "new" ? await postJSON(`/api/products/${variantsOf}/variants`, data)
+                            : await postJSON(`/api/variants/${vid}`, data);
+    const j = await r.json();
+    if (!r.ok) { alert(j.error || "Lỗi"); return; }
+    vEditing = null;
+    return refresh();
+  }
+});
+$("#v-panel").addEventListener("change", async e => {
+  if (e.target.dataset.vact !== "toggle") return;
+  await postJSON(`/api/variants/${e.target.closest(".vrow").dataset.vid}`, {active: e.target.checked});
+  loadProducts();
+});
+$("#v-import-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("#v-import-msg");
+  msg.className = ""; msg.textContent = "Đang nhập…";
+  try {
+    const r = await postForm("/api/variants/import", new FormData(e.target));
+    const per = Object.entries(r.per_product).map(([k, v]) => `${k}: ${v}`).join(" · ");
+    msg.className = r.added ? "okmsg" : "err";
+    msg.textContent = `Đọc ${r.blocks} mẫu` + (r.safe_blocks ? ` (+${r.safe_blocks} bản không liên hệ)` : "")
+      + ` → đã thêm ${r.added}` + (per ? ` (${per})` : "") + (r.unknown ? `, ${r.unknown} mẫu không nhận ra sản phẩm — chọn sản phẩm rồi nhập lại` : "")
+      + (r.blocks && !r.added && !r.unknown ? " — các mẫu này đã có sẵn" : "")
+      + (r.safe_blocks && r.safe_blocks !== r.blocks ? ` ⚠ số mẫu 2 file khác nhau, kiểm tra bản không liên hệ` : "");
+    e.target.reset();
+    loadProducts();
+  } catch (err) { msg.className = "err"; msg.textContent = err.message; }
+});
+
+// ---------- Danh sách nhóm ----------
+let listsCache = {lists: []};
+const openLists = new Set();
+const KIND = {main: "Có sẵn", found: "Script tự tìm theo từ khóa (cập nhật mỗi ngày)", upload: "Bạn tải lên"};
+async function loadLists() {
+  listsCache = await (await fetch("/api/lists")).json();
+  await drawLists();
+}
+async function drawLists() {
+  const d = listsCache, region = d.target_region;
+  const on = d.lists.filter(l => l.enabled).length;
+  $("#l-note").className = "note " + (d.total ? "ok" : "bad");
+  $("#l-note").innerHTML = d.total
+    ? `Script đang dùng <b>${d.total}</b> nhóm (đã bỏ trùng) từ <b>${on}</b> danh sách được tick`
+      + (d.priority ? `, trong đó <b>${d.priority}</b> nhóm <b>ưu tiên</b> chạy trước` : "")
+      + `. Tick <b>Ưu tiên</b> ở 1 danh sách (cả file chạy trước) hoặc ở từng nhóm trong “Xem nhóm”. Thay đổi áp dụng từ vòng quét sau.`
+    : "Chưa có nhóm nào được dùng — tick ít nhất 1 danh sách.";
+  $("#l-region-h").textContent = region ? `Chỉ nhóm ${region}` : "";
+  let html = "";
+  for (const l of d.lists) {
+    html += `<tr data-key="${esc(l.key)}">
+      <td><input type="checkbox" data-act="enabled" ${l.enabled ? "checked" : ""} aria-label="Dùng danh sách này"></td>
+      <td><input type="checkbox" data-act="priority" ${l.priority ? "checked" : ""} aria-label="Ưu tiên cả danh sách này"></td>
+      <td><b>${esc(l.name)}</b>${l.priority ? ' <span class="b info">ưu tiên</span>' : ""}<br><small class="muted">${esc(KIND[l.kind] || l.kind)}${l.exists ? "" : " · chưa có file"}</small></td>
+      <td>${l.count}<br><small class="muted">Hà Nội ${l.hanoi} · đã tham gia ${l.joined}</small></td>
+      <td>${region ? `<input type="checkbox" data-act="region_filter" ${l.region_filter ? "checked" : ""} aria-label="Chỉ nhóm ${esc(region)}">` : ""}</td>
+      <td>${esc((l.created_at || "").slice(0, 16))}</td>
+      <td style="white-space:nowrap"><button data-act="view">${openLists.has(l.key) ? "Ẩn nhóm" : "Xem nhóm"}</button>
+        ${l.exists ? `<a class="btn" href="/lists/${encodeURIComponent(l.key)}.xlsx">Tải về</a>` : ""}
+        ${l.kind === "upload" ? '<button data-act="delete" class="danger">Xóa</button>' : ""}</td></tr>`;
+    if (openLists.has(l.key)) {
+      const rows = await (await fetch(`/api/lists/${encodeURIComponent(l.key)}/groups`)).json();
+      groupRows[l.key] = rows;
+      const nHidden = rows.filter(g => g.hidden).length;
+      const shown = showHidden.has(l.key) ? rows : rows.filter(g => !g.hidden);
+      html += `<tr class="lgroups"><td colspan="7"><div class="inner"><table>
+        <thead><tr><th>#</th><th>Ưu tiên</th><th>Nhóm</th><th>Thành viên</th><th>Hoạt động</th><th>Tham gia</th><th></th></tr></thead><tbody>
+        ${shown.map((g, i) => editing && editing.key === l.key && editing.url === g.group_url ? editRow(l.key, g, i) : `
+        <tr class="${g.hidden ? "hid" : ""}" data-list="${esc(l.key)}" data-url="${esc(g.group_url)}" data-name="${esc(g.group_name)}"><td>${i + 1}</td>
+          <td><input type="checkbox" data-act="gprio" ${g.priority || l.priority ? "checked" : ""} ${l.priority ? 'disabled title="Cả danh sách đang được ưu tiên"' : ""} aria-label="Ưu tiên nhóm này"></td>
+          <td><a href="${esc(g.group_url)}" target="_blank" rel="noopener">${esc(g.group_name)}</a>
+          ${g.region ? `<span class="b">${esc(g.region)}</span>` : ""}
+          ${g.hidden ? `<span class="b warn">ẩn — đang tick “Chỉ nhóm ${esc(listsCache.target_region)}”</span>` : ""}</td>
+          <td>${esc(g.members)}</td><td>${esc(g.activity)}</td>
+          <td>${g.join ? `<span class="b ${g.join === "Đã tham gia" ? "ok" : g.join === "Chờ duyệt" ? "warn" : ""}">${esc(g.join)}</span>` : '<span class="muted">—</span>'}</td>
+          <td class="gact"><button data-act="gedit">Sửa</button> <button data-act="gdel" class="danger">Xóa</button></td></tr>`).join("")
+          || '<tr><td colspan="7" class="muted">Chưa có nhóm nào — dán link ở hộp “Dán link nhóm” bên dưới.</td></tr>'}
+        ${nHidden ? `<tr data-list="${esc(l.key)}"><td colspan="7" class="muted">${nHidden} nhóm khác trong file đang bị ẩn
+          (không có khu vực ${esc(listsCache.target_region)}) —
+          <button data-act="ghidden">${showHidden.has(l.key) ? "Ẩn bớt" : "Hiện để sửa"}</button></td></tr>` : ""}
+        </tbody></table></div></td></tr>`;
+    }
+  }
+  $("#l-rows").innerHTML = html;
+  fillPasteTargets();
+}
+const groupRows = {};
+const showHidden = new Set();  // danh sách đang hiện cả nhóm bị ẩn
+let editing = null;  // {key, url} nhóm đang sửa
+function editRow(key, g, i) {
+  const reg = g.region || "";
+  return `<tr data-list="${esc(key)}" data-url="${esc(g.group_url)}" class="editing"><td>${i + 1}</td><td></td>
+    <td><input class="ed" data-f="group_name" value="${esc(g.group_name)}" placeholder="Tên nhóm" aria-label="Tên nhóm">
+        <input class="ed" data-f="group_url" value="${esc(g.group_url)}" style="margin-top:4px" aria-label="Link nhóm">
+        <select class="ed" data-f="region" style="margin-top:4px" aria-label="Khu vực">
+          ${["Hà Nội", "Toàn quốc", ""].map(r => `<option value="${r}" ${r === reg ? "selected" : ""}>${r || "(không rõ khu vực)"}</option>`).join("")}
+          ${reg && !["Hà Nội", "Toàn quốc"].includes(reg) ? `<option selected>${esc(reg)}</option>` : ""}
+        </select></td>
+    <td><input class="ed" data-f="members" value="${esc(g.members)}" aria-label="Số thành viên"></td>
+    <td><input class="ed" data-f="activity" value="${esc(g.activity)}" placeholder="vd 20+ bài viết/ngày" aria-label="Mức hoạt động"></td>
+    <td></td>
+    <td class="gact"><button data-act="gsave" class="primary">Lưu</button> <button data-act="gcancel">Hủy</button></td></tr>`;
+}
+function fillPasteTargets() {
+  const sel = $("#paste-target"), cur = sel.value;
+  const lists = listsCache.lists || [];
+  sel.innerHTML = lists.map(l => `<option value="${esc(l.key)}">${esc(l.name)}</option>`).join("")
+    + '<option value="__new__">➕ Danh sách mới…</option>';
+  const firstUpload = lists.find(l => l.kind === "upload");
+  sel.value = cur && [...sel.options].some(o => o.value === cur) ? cur : (firstUpload ? firstUpload.key : "__new__");
+  $("#paste-newname").hidden = sel.value !== "__new__";
+}
+$("#paste-target").addEventListener("change", () => { $("#paste-newname").hidden = $("#paste-target").value !== "__new__"; });
+$("#paste-btn").addEventListener("click", async () => {
+  const msg = $("#paste-msg"), text = $("#paste-text").value;
+  if (!text.trim()) { msg.className = "err"; msg.textContent = "Chưa dán link nào"; return; }
+  msg.className = ""; msg.textContent = "Đang thêm…";
+  try {
+    let key = $("#paste-target").value;
+    if (key === "__new__") {
+      key = (await (await postJSON("/api/lists/new", {name: $("#paste-newname").value})).json()).key;
+    }
+    const r = await fetch(`/api/lists/${encodeURIComponent(key)}/links`, {method: "POST",
+      headers: {"Content-Type": "application/json"}, body: JSON.stringify({text})});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Lỗi");
+    msg.className = j.added ? "okmsg" : "err";
+    msg.textContent = `Đã thêm ${j.added} nhóm` + (j.dup ? `, ${j.dup} link đã có sẵn` : "")
+      + (j.bad ? `, ${j.bad} dòng không có link nhóm` : "")
+      + (j.hidden ? ` — ${j.hidden} nhóm đang bị ẩn do tick “Chỉ nhóm Hà Nội” (bấm Sửa để đổi khu vực)` : "") + ".";
+    if (j.added) { $("#paste-text").value = ""; openLists.add(key); }
+    $("#paste-target").value = key;
+    loadLists();
+  } catch (err) { msg.className = "err"; msg.textContent = err.message; }
+});
+$("#l-rows").addEventListener("change", async e => {
+  const act = e.target.dataset.act;
+  if (act === "gprio") {
+    const tr = e.target.closest("tr");
+    await postJSON("/api/groups/priority", {group_url: tr.dataset.url, group_name: tr.dataset.name, priority: e.target.checked});
+    loadLists();
+    return;
+  }
+  if (!["enabled", "region_filter", "priority"].includes(act)) return;
+  const key = e.target.closest("tr").dataset.key;
+  await postJSON(`/api/lists/${encodeURIComponent(key)}`, {[act]: e.target.checked});
+  loadLists();
+});
+$("#l-rows").addEventListener("click", async e => {
+  const btn = e.target.closest("button[data-act]");
+  if (!btn) return;
+  const tr = btn.closest("tr"), key = tr.dataset.key;
+  const act = btn.dataset.act, listKey = tr.dataset.list, url = tr.dataset.url;
+  if (act === "gedit") { editing = {key: listKey, url}; drawLists(); return; }
+  if (act === "ghidden") { showHidden.has(listKey) ? showHidden.delete(listKey) : showHidden.add(listKey); drawLists(); return; }
+  if (act === "gcancel") { editing = null; drawLists(); return; }
+  if (act === "gsave") {
+    const data = {old_url: url};
+    tr.querySelectorAll("[data-f]").forEach(el => data[el.dataset.f] = el.value);
+    const r = await postJSON(`/api/lists/${encodeURIComponent(listKey)}/groups/update`, data);
+    const j = await r.json();
+    if (!r.ok) { alert(j.error || "Lỗi"); return; }
+    editing = null; loadLists(); return;
+  }
+  if (act === "gdel") {
+    if (!confirm(`Xóa nhóm “${tr.dataset.name}” khỏi file danh sách?`)) return;
+    const r = await postJSON(`/api/lists/${encodeURIComponent(listKey)}/groups/delete`, {group_url: url});
+    const j = await r.json();
+    if (!r.ok) { alert(j.error || "Lỗi"); return; }
+    loadLists(); return;
+  }
+  if (btn.dataset.act === "view") {
+    openLists.has(key) ? openLists.delete(key) : openLists.add(key);
+    drawLists();
+  }
+  if (btn.dataset.act === "delete" && confirm("Xóa danh sách này? (nhật ký bình luận cũ vẫn giữ)")) {
+    await fetch(`/api/lists/${encodeURIComponent(key)}`, {method: "DELETE"});
+    loadLists();
+  }
+});
+$("#l-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = $("#l-msg");
+  msg.className = ""; msg.textContent = "Đang đọc file…";
+  try {
+    const r = await postForm("/api/lists", new FormData(e.target));
+    msg.className = "okmsg"; msg.textContent = `Đã thêm ${r.count} nhóm (đang được dùng).`;
+    e.target.reset();
+    loadLists();
+  } catch (err) { msg.className = "err"; msg.textContent = err.message; }
+});
+
+$("#f-date").value = today();
+showTab(TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "log");
+if ($("#tab-log").hidden) loadSummary();
+setInterval(() => { if (!$("#tab-log").hidden) { loadProgress(); loadLog(); } }, 4000);
+setInterval(() => {
+  if (!$("#tab-log").hidden) { if ($("#f-auto").checked) refresh(); }
+  else loadSummary();  // trạng thái script trên thanh đầu trang luôn cập nhật
+}, 30000);
+</script>
+</body>
+</html>

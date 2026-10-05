@@ -1,0 +1,15 @@
+# Môi trường & phiên đăng nhập — KHÔNG BAO GIỜ đưa lên git
+.venv/
+venv/
+chrome_profile/
+.env
+__pycache__/
+*.pyc
+
+# Nhật ký chạy, file tạm
+logs/
+*.db-wal
+*.db-shm
+*.tmp.xlsx
+~$*
+.claude/
