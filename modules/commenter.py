@@ -9,16 +9,8 @@ from selenium.common.exceptions import ElementNotInteractableException, StaleEle
 
 from modules.db import SENT, PENDING, BLOCKED, ERROR, REJECTED
 
-# Thông báo của Facebook (chữ thường)
-BLOCKED_PHRASES = [
-    "tạm thời bị chặn", "bị chặn", "temporarily blocked", "không thể bình luận", "can't comment",
-    "bạn không thể", "you can't", "bị hạn chế", "restricted", "tiêu chuẩn cộng đồng", "community standards",
-]
-# Nhãn dưới bình luận bị nhóm/Facebook từ chối (chỉ người viết thấy): "Bị từ chối · Xem ý kiến đóng góp"
-REJECTED_PHRASES = ["bị từ chối", "xem ý kiến đóng góp", "declined", "see feedback"]
-PENDING_PHRASES = ["chờ phê duyệt", "đang chờ duyệt", "chờ quản trị viên", "pending"]
-
-DELETE_BTN_LABELS = ("Chỉnh sửa hoặc xóa bình luận này", "Edit or delete this")
+from modules import fb_selectors as sel
+from modules.fb_selectors import BLOCKED_PHRASES, REJECTED_PHRASES, PENDING_PHRASES  # selector: fb_selectors.py
 
 
 def _norm(s):
@@ -32,12 +24,8 @@ def _key(text):
 
 
 class FacebookCommenter:
-    # Ô soạn bình luận thật (aria-label "Bình luận dưới tên <tên>" / "Comment as <name>")
-    XP_EDITOR = ("//div[@role='textbox' and @contenteditable='true' and ("
-                 "starts-with(@aria-label, 'Bình luận') or starts-with(@aria-label, 'Viết bình luận') or "
-                 "starts-with(@aria-label, 'Comment') or starts-with(@aria-label, 'Write a comment'))]")
-    # Nút "Viết bình luận" — chỉ là nút bấm để hiện ô soạn, không gõ chữ vào được
-    XP_COMMENT_BTN = "//div[@role='button' and (@aria-label='Viết bình luận' or @aria-label='Write a comment')]"
+    XP_EDITOR = sel.XP_EDITOR            # ô soạn bình luận
+    XP_COMMENT_BTN = sel.XP_COMMENT_BTN  # nút "Viết bình luận" (bấm để hiện ô soạn)
 
     def __init__(self, driver, config):
         self.driver = driver
@@ -48,7 +36,7 @@ class FacebookCommenter:
     def _visible(self, xpath):
         """Phần tử hiển thị khớp xpath, ưu tiên phần tử nằm trong cửa sổ nổi (dialog) trên cùng"""
         els = [e for e in self.driver.find_elements(By.XPATH, xpath) if e.is_displayed()]
-        in_dialog = [e for e in els if e.find_elements(By.XPATH, "./ancestor::div[@role='dialog']")]
+        in_dialog = [e for e in els if e.find_elements(By.XPATH, sel.XP_IN_DIALOG)]
         return (in_dialog or els or [None])[-1 if in_dialog else 0]
 
     def _find_editor(self):
@@ -73,7 +61,7 @@ class FacebookCommenter:
         uid = self._my_uid()
         if not uid:
             return []
-        xp = f"//div[@role='article'][.//a[contains(@href, '/user/{uid}/') or contains(@href, 'id={uid}')]]"
+        xp = sel.xp_my_comments(uid)
         result = []
         for a in self.driver.find_elements(By.XPATH, xp):
             try:
@@ -87,7 +75,7 @@ class FacebookCommenter:
         """Tìm bình luận trên trang có đoạn đầu trùng với text (kể cả bình luận vừa gửi chưa có link tài khoản)"""
         key = _key(text)
         found = None
-        for a in self.driver.find_elements(By.XPATH, "//div[@role='article']"):
+        for a in self.driver.find_elements(By.XPATH, sel.XP_ARTICLES):
             try:
                 if key and key in _norm(a.text):
                     found = a
@@ -106,7 +94,7 @@ class FacebookCommenter:
     def _notices(self):
         """Chữ trong các thông báo/hộp thoại ngắn (để dò thông báo bị chặn)"""
         texts = []
-        for el in self.driver.find_elements(By.XPATH, "//div[@role='alert' or @role='alertdialog'] | //div[@role='dialog']"):
+        for el in self.driver.find_elements(By.XPATH, sel.XP_NOTICES):
             try:
                 t = el.text
                 if t and len(t) < 600:
@@ -119,9 +107,9 @@ class FacebookCommenter:
     def _attach_image(self, editor, image_path):
         """Gắn ảnh vào ô bình luận đang mở (tìm input file trong form chứa ô bình luận)"""
         try:
-            inputs = editor.find_elements(By.XPATH, "./ancestor::form[1]//input[@type='file']")
+            inputs = editor.find_elements(By.XPATH, sel.XP_FORM_FILE_INPUT)
             if not inputs:
-                inputs = self.driver.find_elements(By.XPATH, "//input[@type='file' and contains(@accept, 'image')]")
+                inputs = self.driver.find_elements(By.XPATH, sel.XP_IMAGE_FILE_INPUT)
             if not inputs:
                 return "không tìm thấy nút gắn ảnh"
             inputs[-1].send_keys(os.path.abspath(image_path))
@@ -153,8 +141,7 @@ class FacebookCommenter:
     def post_unavailable(self):
         """Bài viết đã bị xóa / ẩn ("Bạn hiện không xem được nội dung này")"""
         body = self.driver.find_element(By.TAG_NAME, "body").text.lower()
-        return any(p in body for p in ("không xem được nội dung này", "content isn't available",
-                                       "nội dung này hiện không hiển thị", "this content isn't available"))
+        return any(p in body for p in sel.UNAVAILABLE_PHRASES)
 
     def already_commented(self):
         """Bài đã có bình luận của mình chưa (chỉ thấy được bình luận đang hiển thị)"""
@@ -274,17 +261,14 @@ class FacebookCommenter:
             time.sleep(1)
             ActionChains(self.driver).move_to_element(article).perform()
             time.sleep(1.5)
-            label_xp = " or ".join(f"@aria-label='{l}'" for l in DELETE_BTN_LABELS)
-            btns = article.find_elements(By.XPATH, f".//div[@role='button'][{label_xp}]")
+            btns = article.find_elements(By.XPATH, sel.xp_delete_button())
             if not btns:
                 return False
             ActionChains(self.driver).move_to_element(btns[0]).click().perform()
             time.sleep(1.5)
 
             # Menu: "Chỉnh sửa" / "Xóa"
-            items = [e for e in self.driver.find_elements(
-                By.XPATH, "//div[@role='menu']//*[normalize-space(text())='Xóa' or normalize-space(text())='Delete']")
-                if e.is_displayed()]
+            items = [e for e in self.driver.find_elements(By.XPATH, sel.XP_MENU_DELETE) if e.is_displayed()]
             if not items:
                 ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
                 return False
@@ -292,10 +276,7 @@ class FacebookCommenter:
             time.sleep(1.5)
 
             # Hộp thoại xác nhận "Xóa bình luận?" -> nút Xóa
-            confirm = [e for e in self.driver.find_elements(
-                By.XPATH, "//div[@role='dialog']//div[@role='button'][@aria-label='Xóa' or @aria-label='Delete'"
-                          " or .//span[normalize-space(text())='Xóa' or normalize-space(text())='Delete']]")
-                if e.is_displayed()]
+            confirm = [e for e in self.driver.find_elements(By.XPATH, sel.XP_CONFIRM_DELETE) if e.is_displayed()]
             if not confirm:
                 ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
                 return False

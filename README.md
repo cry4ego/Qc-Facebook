@@ -17,9 +17,18 @@ Script Python dùng Selenium điều khiển Chrome (đã đăng nhập tài kho
 
 ## 🚀 Dùng hằng ngày
 
-1. Bấm đúp **`chay-ngam.bat`**. Hai cửa sổ thu nhỏ sẽ chạy, và trình duyệt tự mở web quản lý
-2. Xem kết quả trên web **http://127.0.0.1:5000**
-3. Muốn dừng tạm thời thì bấm **Tạm dừng** trên web. Muốn tắt hẳn thì đóng cửa sổ terminal "QC-Facebook"
+1. Bấm đúp **`chay-ngam.bat`**. Bốn cửa sổ thu nhỏ sẽ chạy, và trình duyệt tự mở web quản lý:
+   - **QC-Facebook Quet** và **QC-Facebook Quet 2** — 2 cửa sổ **QUÉT** (mỗi cửa sổ 1 Chrome riêng): chia nhau các nhóm
+     (không quét trùng), liên tục tìm bài mới, bài đạt điều kiện vào **hàng chờ**
+   - **QC-Facebook** — cửa sổ **BÌNH LUẬN**: lấy bài **mới nhất** trong hàng chờ bình luận **ngay**
+   - **QC-Facebook Web** — web quản lý
+2. Xem kết quả trên web **http://127.0.0.1:5000** (dòng 🔎 cho biết cửa sổ quét đang quét nhóm nào, hàng chờ còn bao nhiêu bài)
+3. Muốn dừng tạm thời thì bấm **Tạm dừng** trên web (mọi cửa sổ cùng dừng). Muốn tắt hẳn thì đóng các cửa sổ terminal —
+   **đừng đóng nhầm**: đóng cửa sổ terminal là bot dừng hẳn (10/10 11:24 cả 4 cửa sổ tắt cùng lúc, không có lỗi nào)
+
+**Lần đầu chạy song song** (hoặc khi cửa sổ quét báo chưa đăng nhập): đóng các cửa sổ trên rồi chạy
+`.venv\Scripts\python.exe main.py taophienquet` — chép phiên đăng nhập sang Chrome của 2 cửa sổ quét (`chrome_profile_quet/`, `chrome_profile_quet2/`).
+Vẫn chưa đăng nhập được thì chạy `python main.py login quet` (cửa sổ 2: `python main.py login quet 2`) và đăng nhập tay.
 
 Chỉ muốn xem web mà không chạy script: bấm đúp **`mo-web.bat`**.
 
@@ -78,19 +87,40 @@ python main.py login      # đăng nhập Facebook trong Chrome rồi nhấn Ent
 
 ## 2️⃣ Tự động bình luận bài mới
 
+### Chạy song song: quét & bình luận cùng lúc (`PARALLEL = True`, từ 10/10)
+
+Trước đây 1 cửa sổ vừa quét vừa bình luận: lúc đang bình luận 1 bài (2–4 phút) thì không quét, bài mới thường đã đăng
+~60 phút mới được bình luận. Nay 2 cửa sổ chạy song song, mỗi cửa sổ 1 Chrome riêng (cùng tài khoản Facebook):
+
+- **2 cửa sổ QUÉT** (`python main.py quet`, `python main.py quet 2` — `SCAN_WINDOWS = 2`, chia nhau nhóm qua bảng
+  `scan_claims`, không quét trùng): liên tục chọn nhóm nên quét nhất —
+  nhóm tương tác cao (`HOT_GROUPS`) mỗi **2 phút**, nhóm có khách tìm màn hình / nhóm ≥ 100 bài/ngày mỗi **5 phút**,
+  nhóm thường mỗi **60 phút**, nhóm ít khách 24 giờ. Nhóm tới lượt cùng lúc thì nhóm **điểm cao** trước: điểm = khách
+  tìm màn hình (nặng nhất) + **tương tác trung bình mỗi bài** (cảm xúc + bình luận + chia sẻ) + số bài/ngày + **số thành
+  viên**. Mỗi lần chỉ xét bài đăng **sau lần quét trước** (+10 phút dự phòng) nên quét lại chỉ mất vài chục giây (tối đa
+  45 giây). Bài đạt mọi bộ lọc → **hàng chờ**. Cửa sổ quét chỉ đọc: không bình luận, không tham gia nhóm
+- **Cửa sổ BÌNH LUẬN** (`python main.py`): luôn lấy bài **đăng gần đây nhất** trong hàng chờ bình luận ngay; giữa 2 bài
+  vẫn nghỉ 30–120 giây. Hàng chờ trống thì: tự tham gia nhóm cửa sổ quét báo chưa tham gia, kiểm tra lại vài bài đã
+  bình luận, đăng bài theo lịch. Bài quá 6 giờ chưa kịp bình luận → "Quá hạn"
+- Cả 2 cửa sổ cùng dừng khi bấm **Tạm dừng** trên web, khi đủ 40 bài/ngày, khi bị Facebook chặn
+- `PARALLEL = False` (hoặc chưa có `chrome_profile_quet/`) → chạy cách cũ bên dưới (1 cửa sổ tự quét rồi bình luận)
+
+### Cách cũ (1 cửa sổ)
+
 Script chạy **liên tục theo vòng**. Mỗi vòng:
 
 1. **Danh sách nhóm** = 24 nhóm Hà Nội trong `groups.xlsx` + nhóm **tự tìm theo từ khóa** (`groups_found.xlsx`, xem dưới).
    **Xếp thứ tự**: nhóm thuộc `PRIORITY_REGION` trước, rồi theo điểm = (hoạt động + số thành viên) × từ khóa trong tên
    (`GROUP_KEYWORDS`, mỗi từ khóa +25%) × **2 nếu tên có "màn hình"**, × 0,7 nếu tên chỉ nói laptop
 2. **Lần lượt từng nhóm** (nhóm đông bài nhất trước):
-   - mở nhóm, sắp xếp theo **Bài viết mới**, cuộn tới hết các bài đăng trong **24 giờ** (`MAX_POST_AGE_MINUTES`) —
+   - mở nhóm, sắp xếp theo **Bài viết mới**, cuộn tới hết các bài đăng trong **6 giờ** (`MAX_POST_AGE_MINUTES`) —
      **không giới hạn số bài** (`MAX_POSTS_PER_GROUP = 0`), kể cả nhiều người đăng cùng lúc
-   - **chỉ lấy bài màn hình và PC** (`COMMENT_TOPICS = ["Màn hình", "PC"]`), **bài màn hình bình luận trước**:
+   - **chỉ lấy bài tìm màn hình** (`COMMENT_TOPICS = ["Màn hình"]` — từ 08/10 bỏ bài tìm PC / linh kiện lẻ; thêm
+     `"PC"` vào danh sách nếu muốn bình luận lại cả bài PC):
      - *Màn hình*: mua/bán/tìm màn hình, bài cần build PC **kèm màn hình**
      - *PC*: máy bàn, case, cấu hình, linh kiện, VGA, setup, bàn phím/chuột…
      - **bỏ qua** bài laptop (kể cả bài laptop ghi "màn 15.6", "165hz"), điện thoại, máy in…
-     Bộ nhận diện nằm trong `modules/watcher.py` (`MONITOR_TOPIC`, `PC_TOPIC`, `LAPTOP_TOPIC`)
+     Bộ nhận diện nằm trong `modules/topic.py` (`MONITOR_TOPIC`, `PC_TOPIC`, `LAPTOP_TOPIC`)
    - **bỏ qua** bài đã có trong nhật ký, bài do chính bạn đăng
    - bình luận **hết** các bài đó rồi mới sang nhóm sau
 3. Mở bài, bỏ qua nếu đã có bình luận của bạn, rồi gửi lần lượt **3 bình luận** trong `data/comments.txt`, mỗi bình luận
@@ -117,17 +147,64 @@ Script chạy **liên tục theo vòng**. Mỗi vòng:
 8. **Kiểm tra lại** sau ~1 giờ: mở lại bài, đếm bình luận của bạn còn hiển thị → `Còn đủ 3/3` / `Chỉ còn 1/3` /
    `Không thấy 0/3 — có thể đã bị xóa/từ chối`
 
-Không lọc nội dung bài (`FILTER_BUY_POSTS = False`). Muốn chỉ bình luận bài **tìm mua màn hình** thì đặt `True`
-(bộ lọc nằm trong `modules/watcher.py`).
+### Chỉ bình luận bài của người cần MUA, ở nhóm đông & tương tác tốt
+
+Bot **không bình luận tràn lan** nữa. Trước khi quét, mỗi **nhóm** được kiểm tra; trong nhóm, mỗi **bài** qua lần lượt
+các bộ lọc — không đạt 1 bộ lọc là bỏ qua, và **mọi quyết định đều được ghi lại kèm lý do** (web → tab **Phân loại bài**,
+và `logs/app.log`):
+
+| Bước | Điều kiện | Cấu hình (`config.py`) |
+|---|---|---|
+| Nhóm | Số thành viên ≥ 5.000; **nhóm Hà Nội** (tên có Hà Nội/HN hoặc cột khu vực = Hà Nội) chỉ cần ≥ 500 (đọc ở trang **Giới thiệu** của nhóm, lưu CSDL, đọc lại sau 24 giờ). Không đọc được số thành viên → bỏ qua nhóm | `GROUP_MIN_MEMBERS`, `GROUP_MIN_MEMBERS_HANOI`, `GROUP_STATS_CACHE_HOURS` |
+| Nhóm | (tùy chọn) số bài mới mỗi ngày ≥ … | `GROUP_MIN_POSTS_PER_DAY` (0 = không xét) |
+| Bài | Chủ đề **màn hình** (bỏ bài tìm PC / linh kiện lẻ, laptop, điện thoại…; bài build PC có kèm màn hình vẫn tính là màn hình) | `COMMENT_TOPICS` |
+| Bài | Ý định **MUA** — bỏ bài **BÁN** (shop, thanh lý, đối thủ) và bài **KHÔNG XÁC ĐỊNH** | `INTENT_FILTER`, `INTENT_MIN_SCORE`, `INTENT_MARGIN` |
+| Bài | Từ khóa chưa đủ chắc (KHÔNG XÁC ĐỊNH) → hỏi **AI Gemini** MUA hay BÁN (mỗi nội dung hỏi 1 lần, lưu lại). Gemini lỗi / hết lượt → bỏ qua bài | `INTENT_AI`, `GEMINI_MODEL`, `GEMINI_MAX_CALLS_PER_DAY`, khóa `GEMINI_API_KEY` trong file `.env` |
+| Bài | **Khu vực**: khách ghi rõ ở xa (TP.HCM, miền Nam, miền Trung, tỉnh xa…) mà không nhắc Hà Nội / tỉnh lân cận → bỏ qua, dành lượt cho khách gần. Bài **không ghi khu vực**: ở **nhóm Hà Nội** (tên nhóm có "Hà Nội"/"HN") vẫn bình luận; ở **nhóm toàn quốc** (vd MÀN HÌNH MÁY TÍNH) bỏ qua — khoảng một nửa là khách tỉnh xa. Danh sách tỉnh **GẦN / XA** sửa trong file **`data/khu_vuc.txt`** (có hiệu lực ngay) | `REGION_FILTER`, `REGION_FILE`, `REGION_REQUIRED_IN_NATIONAL_GROUPS` |
+| Bài | Đăng trong **6 giờ** gần đây (bài cũ hơn thường đã có nhiều shop trả lời) | `MAX_POST_AGE_MINUTES` |
+| Bài | **Không chờ tương tác**: bài cần mua được bình luận **ngay khi phát hiện** (bài mới 0 like / 0 bình luận là cơ hội tốt nhất — chưa shop nào trả lời). Muốn chỉ bình luận bài đã có tương tác thì đặt ngưỡng > 0 (điểm = cảm xúc ×1 + bình luận ×2 + chia sẻ ×3) | `POST_MIN_ENGAGEMENT` (đang `0`), `ENGAGEMENT_WEIGHTS` |
+
+**Từ khóa MUA / BÁN** nằm trong file riêng **`data/tu_khoa_mua_ban.txt`** (mỗi dòng 1 cụm từ, có thể kèm điểm
+`cụm từ | 3`) — sửa file là bot dùng ngay từ bài tiếp theo, không cần sửa code hay khởi động lại. Thử 1 câu:
+
+```powershell
+python main.py phanloai "Cần tìm màn 27 inch 2K tầm 3tr ở Cầu Giấy"
+```
+
+Xem lại bài **KHÔNG XÁC ĐỊNH** trên tab **Phân loại bài**: bài nào thật ra là người cần mua thì thêm từ khóa vào file.
+
+Mỗi nhóm chỉ quét tối đa **2 phút** (`GROUP_SCAN_MAX_SECONDS`) — bài mới nhất được xét trước. Số thành viên đọc lại
+ngay khi bấm **Cập nhật số thành viên** (tab Phân loại bài) hoặc chạy `python main.py capnhatnhom`.
+
+**Xoay vòng nhóm theo số bài cần mua** (để quét tới cả các nhóm cuối danh sách, không chỉ vài nhóm đầu):
+- thứ tự: nhóm tương tác cao → nhóm "Ưu tiên" trên web → nhóm có **nhiều bài cần mua** trong 7 ngày (`YIELD_DAYS`)
+  → nhóm chưa quét lần nào → nhóm **ít khách** (quét ≥ 3 lần mà 0 bài cần mua)
+- nhóm vừa quét xong thì **2 giờ** sau mới quét lại (`GROUP_RESCAN_MINUTES`), nhóm ít khách **24 giờ** 1 lần
+  (`LOW_YIELD_RESCAN_HOURS`); nhóm tương tác cao vẫn quét lại mỗi 5 phút
+- nhóm báo **"Bạn hiện không xem được nội dung này"** (thường do bị quản trị viên chặn khỏi nhóm): log ghi cảnh báo ⚠,
+  bot bỏ qua nhóm đó 24 giờ rồi thử lại (`GROUP_UNAVAILABLE_RETRY_HOURS`)
+- đủ `MAX_COMMENTED_POSTS_PER_DAY` bài trong ngày: vẫn tự tham gia nhóm & kiểm tra lại bài đã bình luận rồi mới nghỉ
+
+**Đăng bài theo lịch** vào nhóm có nhiều bài cần mua trước. Nhóm không đăng được vì lý do của nhóm thì không tính là lỗi
+và lần sau tự bỏ qua: chưa tham gia, không xem được nhóm, nhóm **chỉ cho đăng tin bán** ("Bán gì đó" — bỏ qua 30 ngày),
+nhóm đang giữ **quá nhiều bài/bình luận chờ duyệt** của bạn (bỏ qua 24 giờ). Bấm Đăng mà cửa sổ không đóng thì log ghi lại
+Facebook báo gì + ảnh chụp trong `data/screenshots/dang_bai_loi_*.png`.
+
+**Chạy thử trước khi chạy thật** — quét & phân loại, KHÔNG bình luận, KHÔNG tham gia nhóm:
+
+```powershell
+python main.py thuquet 5        # 5 nhóm đầu danh sách
+python main.py thuquet https://www.facebook.com/groups/manhinhmaytinh/
+```
 
 ### Tìm nhóm mới theo từ khóa — `data/groups_found.xlsx`
 
 Mỗi `GROUP_SEARCH_EVERY_HOURS` (24) giờ, cuối vòng quét, script tìm trên Facebook theo `GROUP_SEARCH_QUERIES`
-("màn hình Hà Nội", "PC Hà Nội", "setup pc", "phụ kiện màn hình", "đồ công nghệ Hà Nội", "chợ đồ cũ Hà Nội", "đồ cũ 2nd Hà Nội"…)
-và giữ nhóm:
-- tên có từ khóa quan trọng (`GROUP_KEYWORDS`: PC, màn hình, setup pc, phụ kiện màn hình, đồ công nghệ, chợ đồ cũ, 2nd;
+(từ 08/10 chỉ về **màn hình**: "màn hình máy tính Hà Nội", "mua bán màn hình Hà Nội", "màn hình cũ Hà Nội",
+"thanh lý màn hình Hà Nội", "chợ màn hình máy tính Hà Nội"…) và giữ nhóm:
+- tên có từ khóa quan trọng (`GROUP_KEYWORDS`: màn hình, màn hình cũ, thanh lý màn hình, mua bán màn hình;
   hoặc Hà Nội + máy tính/gaming/linh kiện)
-- từ `MIN_GROUP_MEMBERS` (1000) thành viên, không thuộc tỉnh khác
+- từ `MIN_GROUP_MEMBERS` (5000) thành viên (nhóm Hà Nội: từ `GROUP_MIN_MEMBERS_HANOI` = 500), không thuộc tỉnh khác
 - không phải nhóm màn hình LED/quảng cáo, điện thoại, pin/màn laptop, máy chơi game cầm tay, bàn ghế…
 
 Tối đa `MAX_FOUND_GROUPS` (30) nhóm (Hà Nội & đông thành viên trước). Vòng sau script tự tham gia (điền "ok", tick hết)
@@ -241,24 +318,45 @@ Web chỉ mở được trên máy này (127.0.0.1), máy khác trong mạng kh�
 |---|---|---|
 | `TARGET_REGION` | `"Hà Nội"` | Chỉ dùng nhóm có `region` này. `""` = tất cả 215 nhóm |
 | `PRIORITY_REGION` | `"Hà Nội"` | Nhóm khu vực này được quét/bình luận trước |
-| `MAX_POST_AGE_MINUTES` | 1440 | Chỉ bình luận bài đăng trong vòng ... phút (24 giờ) |
+| `MAX_POST_AGE_MINUTES` | 360 | Chỉ bình luận bài đăng trong vòng ... phút (6 giờ) |
 | `MAX_POSTS_PER_GROUP` | 0 | Mỗi vòng 1 nhóm tối đa ... bài. `0` = bình luận hết |
-| `COMMENT_TOPICS` | `["Màn hình", "PC"]` | Chủ đề được bình luận, theo thứ tự ưu tiên. Thêm `"Laptop"` = cả bài laptop; `[]` = mọi bài |
-| `GROUP_KEYWORDS` | PC, màn hình, Hà Nội, setup pc, phụ kiện màn hình, đồ công nghệ, chợ đồ cũ, 2nd | Từ khóa quan trọng trong tên nhóm (lọc nhóm tìm được + cộng điểm ưu tiên) |
-| `GROUP_SEARCH_QUERIES` | 9 cụm từ | Cụm từ tìm nhóm trên Facebook |
+| `COMMENT_TOPICS` | `["Màn hình"]` | Chủ đề được bình luận, theo thứ tự ưu tiên. Thêm `"PC"` / `"Laptop"` nếu muốn; `[]` = mọi bài |
+| `GROUP_KEYWORDS` | màn hình, Hà Nội, màn hình cũ, thanh lý màn hình, mua bán màn hình | Từ khóa quan trọng trong tên nhóm (lọc nhóm tìm được + cộng điểm ưu tiên) |
+| `GROUP_SEARCH_QUERIES` | 7 cụm từ về màn hình (Hà Nội) | Cụm từ tìm nhóm trên Facebook |
 | `GROUP_SEARCH_EVERY_HOURS` | 24 | Bao lâu tìm nhóm mới 1 lần |
-| `MIN_GROUP_MEMBERS` / `MAX_FOUND_GROUPS` | 1000 / 30 | Bỏ nhóm ít thành viên / giữ tối đa ... nhóm tự tìm |
-| `MAX_COMMENTED_POSTS_PER_DAY` | 0 | Giới hạn số bài/ngày. `0` = không giới hạn (chạy liên tục) |
+| `MIN_GROUP_MEMBERS` / `MAX_FOUND_GROUPS` | 5000 / 30 | Tìm nhóm mới: bỏ nhóm ít thành viên / giữ tối đa ... nhóm tự tìm |
+| `MAX_COMMENTED_POSTS_PER_DAY` | 40 | Giới hạn số bài/ngày (05/10 bị chặn sau 121 bài). Đủ số thì nghỉ tới 0 giờ, không mở Chrome (vẫn đăng bài theo lịch). `0` = không giới hạn |
 | `ROUND_IDLE_MINUTES` | 5 | Vòng không có bài mới thì chờ ... phút rồi quét lại |
 | `AUTO_JOIN` | `True` | Cuối vòng tự tham gia nhóm chưa tham gia |
 | `JOIN_ANSWER` | `"ok"` | Câu trả lời điền vào mọi ô câu hỏi khi tham gia |
 | `JOIN_PER_DAY` | 20 | Số nhóm tối đa tự tham gia mỗi ngày |
 | `COMMENT_GAP_MIN` / `MAX` | 15 / 40 | Chờ giữa 3 bình luận trong cùng 1 bài (giây) |
 | `MIN_DELAY` / `MAX_DELAY` | 30 / 120 | Chờ giữa 2 bài (giây) |
-| `FILTER_BUY_POSTS` | `False` | `True` = chỉ bình luận bài tìm mua màn hình |
+| `GROUP_MIN_MEMBERS` | 5000 | Chỉ quét nhóm có từ ... thành viên (đọc ở trang Giới thiệu nhóm) |
+| `GROUP_MIN_MEMBERS_HANOI` | 500 | Nhóm Hà Nội chỉ cần từ ... thành viên (nhỏ nhưng đúng khách); cũng dùng khi tìm nhóm mới |
+| `GROUP_MIN_POSTS_PER_DAY` | 0 | Chỉ quét nhóm có từ ... bài mới/ngày. `0` = không xét |
+| `GROUP_STATS_CACHE_HOURS` / `GROUP_STATS_RETRY_MINUTES` | 24 / 60 | Số thành viên dùng lại ... giờ / đọc lỗi thì ... phút sau thử lại |
+| `GROUP_SCAN_MAX_SECONDS` | 45 | Quét 1 nhóm tối đa ... giây |
+| `INTENT_FILTER` | `True` | Chỉ bình luận bài người cần **MUA** (bỏ bài BÁN / không rõ). `False` = tắt bộ lọc này |
+| `INTENT_KEYWORDS_FILE` | `data/tu_khoa_mua_ban.txt` | File từ khóa MUA / BÁN |
+| `INTENT_MIN_SCORE` / `INTENT_MARGIN` | 3 / 2 | Bài là MUA khi điểm MUA ≥ ... và hơn điểm BÁN ít nhất ... |
+| `REGION_FILTER` / `REGION_FILE` | `True` / `data/khu_vuc.txt` | Bỏ qua khách ghi rõ ở khu vực xa (danh sách tỉnh GẦN / XA trong file) |
+| `REGION_REQUIRED_IN_NATIONAL_GROUPS` | `True` | Nhóm toàn quốc: chỉ bình luận bài ghi rõ Hà Nội / tỉnh lân cận. `False` = cả bài không ghi khu vực |
+| `PARALLEL` / `SCAN_WINDOWS` | `True` / 2 | Chạy song song 2 cửa sổ QUÉT + 1 cửa sổ BÌNH LUẬN (cần `chrome_profile_quet/`, `chrome_profile_quet2/` — lệnh `taophienquet`) |
+| `HOT_RESCAN_MINUTES` / `SCAN_ACTIVE_MINUTES` | 2 / 5 | Quét lại nhóm tương tác cao / nhóm có khách hoặc ≥ `SCAN_ACTIVE_POSTS_PER_DAY` (100) bài/ngày mỗi ... phút |
+| `SCAN_OVERLAP_MINUTES` | 10 | Quét lại chỉ xét bài đăng sau lần quét trước + ... phút |
+| `QUEUE_IDLE_SECONDS` / `QUEUE_HOUSEKEEP_MINUTES` | 15 / 30 | Hàng chờ trống: ... giây xem lại; ... phút 1 lần tham gia nhóm + kiểm tra lại bài cũ |
+| `GROUP_RESCAN_MINUTES` | 60 | Nhóm thường quét xong thì ... phút sau mới quét lại (nhường lượt cho nhóm khác) |
+| `YIELD_DAYS` / `LOW_YIELD_MIN_SCANS` / `LOW_YIELD_RESCAN_HOURS` | 7 / 3 / 24 | Nhóm quét ≥ 3 lần trong 7 ngày mà 0 bài cần mua = ít khách, 24 giờ quét 1 lần |
+| `GROUP_UNAVAILABLE_RETRY_HOURS` | 24 | Nhóm báo "không xem được nội dung này": ... giờ sau mới thử lại |
+| `POST_MIN_ENGAGEMENT` | 0 | Chỉ bình luận bài có điểm tương tác từ ... trở lên. `0` = không xét (bình luận bài cần mua ngay) |
+| `ENGAGEMENT_WEIGHTS` | 1 / 2 / 3 | Trọng số cảm xúc / bình luận / chia sẻ khi tính điểm tương tác |
+| `INTENT_AI` | `True` | Bài từ khóa chấm KHÔNG XÁC ĐỊNH thì hỏi Gemini (cần `GEMINI_API_KEY` trong file `.env`) |
+| `GEMINI_MODEL` / `GEMINI_MAX_CALLS_PER_DAY` | `gemini-flash-lite-latest` / 500 | Model Gemini / số lần hỏi tối đa mỗi ngày |
 | `BLOCK_COOLDOWN_HOURS` | 6 | Bị Facebook chặn thì nghỉ ... giờ |
 | `VERIFY_AFTER_MINUTES` | 60 | Sau ... phút mở lại bài kiểm tra bình luận còn hay bị xóa |
-| `WATCH_SCROLLS` | 60 | Số lần cuộn tối đa mỗi nhóm (dừng sớm khi gặp bài cũ hơn 24 giờ) |
+| `HOT_GROUPS` | 2 nhóm | Nhóm tương tác cao: luôn quét đầu vòng, tự tham gia ngay nếu chưa vào, không cần có trong danh sách trên web |
+| `WATCH_SCROLLS` | 60 | Số lần cuộn tối đa mỗi nhóm (dừng sớm khi gặp bài cũ hơn `MAX_POST_AGE_MINUTES`) |
 | `HEADLESS` | `False` | `True` = ẩn cửa sổ Chrome |
 | `WEB_PORT` | 5000 | Cổng web quản lý |
 
@@ -281,6 +379,13 @@ Sửa xong thì đóng cửa sổ "QC-Facebook" và bấm đúp lại `chay-ngam
 | `python main.py login` | Đăng nhập Facebook |
 | `python main.py join` | Kiểm tra / tham gia nhóm, lưu nội quy |
 | `python main.py findgroups` | Tìm nhóm mới theo từ khóa → `data/groups_found.xlsx` |
+| `python main.py quet [2]` | Cửa sổ **QUÉT** số 1 / 2 (chạy song song, `chay-ngam.bat` tự mở): tìm bài mới liên tục → hàng chờ |
+| `python main.py taophienquet` | Tạo Chrome cho các cửa sổ quét: chép phiên đăng nhập (đóng các cửa sổ "QC-Facebook…" trước) |
+| `python main.py login quet [2]` | Đăng nhập tay cho Chrome của cửa sổ quét số 1 / 2 |
+| `python main.py thuquet [N\|link nhóm]` | **Chạy thử**: quét & phân loại N nhóm đầu (hoặc 1 nhóm), KHÔNG bình luận / tham gia nhóm |
+| `python main.py phanloai "nội dung"` | Xem 1 câu được chấm MUA / BÁN / KHÔNG XÁC ĐỊNH và vì sao |
+| `python main.py capnhatnhom` | Đọc lại ngay số thành viên của mọi nhóm, cho biết nhóm nào được quét |
+| `python -m pytest` | Chạy test tự động (cần `pip install -r requirements-dev.txt`) |
 | `python tools/import_groups.py` | Cập nhật `groups.xlsx` sau khi sửa `nhom_facebook_man_hinh_PC.xlsx` |
 
 ---
@@ -293,7 +398,8 @@ Sửa xong thì đóng cửa sổ "QC-Facebook" và bấm đúp lại `chay-ngam
 | Nhiều bình luận **Bị chặn** | Facebook hạn chế tài khoản. Script tự nghỉ 6 giờ; nên đặt `MAX_COMMENTED_POSTS_PER_DAY` (vd 40) hoặc `MAX_POSTS_PER_GROUP` (vd 10) |
 | Nhiều bình luận **Chờ duyệt** / kiểm tra lại **Không thấy** | Nhóm duyệt hoặc xóa bình luận quảng cáo → cân nhắc bỏ nhóm đó khỏi danh sách |
 | `Lỗi — Không tìm thấy ô soạn bình luận` | Facebook đổi giao diện → cập nhật `XP_EDITOR` trong `modules/commenter.py` |
-| Vòng quét luôn `0 bài mới` | Không có bài mới trong 24 giờ (hoặc đã bình luận hết), hoặc Facebook đổi giao diện bảng tin (`modules/watcher.py`) |
+| Vòng quét luôn `0 bài mới` | Không có bài mới trong 6 giờ (hoặc đã bình luận hết), hoặc Facebook đổi giao diện bảng tin (`modules/watcher.py`) |
+| Log báo `⚠ Tài khoản KHÔNG XEM ĐƯỢC nhóm …` | Mở nhóm bằng tài khoản khác: nhóm vẫn còn thì tài khoản bot đã bị chặn khỏi nhóm → bỏ nhóm khỏi `HOT_GROUPS` / danh sách |
 | Không mở được Chrome | Chrome lần trước còn chạy ngầm; script tự đóng nó, nếu vẫn lỗi thì tắt `chrome.exe` trong Task Manager |
 | `✗ Đăng nhập thất bại` | Chạy `python main.py login` |
 

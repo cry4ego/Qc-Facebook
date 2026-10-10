@@ -10,6 +10,7 @@ Bảng:
   group_lists — các file Excel danh sách nhóm, bật/tắt trên web
 """
 import os
+import re
 import json
 import sqlite3
 from datetime import datetime, timedelta
@@ -114,7 +115,90 @@ CREATE TABLE IF NOT EXISTS priority_groups (  -- nhóm được tick "Ưu tiên"
     group_name TEXT,
     since      TEXT
 );
+CREATE TABLE IF NOT EXISTS group_stats (      -- số thành viên / bài mỗi ngày đọc ở trang Giới thiệu nhóm (cache 24 giờ)
+    group_url   TEXT PRIMARY KEY,
+    group_name  TEXT,
+    members     INTEGER,   -- NULL = không đọc được
+    posts_today INTEGER,
+    activity    TEXT,      -- câu gốc, vd "Hôm nay có 236 bài viết mới"
+    fetched_at  TEXT,
+    error       TEXT
+);
+CREATE TABLE IF NOT EXISTS post_decisions (   -- mọi quyết định bình luận / bỏ qua 1 bài kèm lý do (1 dòng / bài / nhóm)
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_url     TEXT,
+    group_name    TEXT,
+    text_key      TEXT,    -- mã nội dung bài (bài chưa lấy link vẫn nhận ra khi gặp lại)
+    post_text     TEXT,
+    post_url      TEXT,
+    post_age_min  INTEGER,
+    topic         TEXT,
+    intent        TEXT,    -- MUA / BÁN / KHÔNG XÁC ĐỊNH
+    intent_detail TEXT,    -- điểm + từ khóa đã khớp
+    reactions     INTEGER,
+    comments      INTEGER,
+    shares        INTEGER,
+    score         REAL,    -- điểm tương tác
+    decision      TEXT,    -- Bình luận / Bỏ qua
+    reason        TEXT,
+    first_seen    TEXT,
+    last_seen     TEXT,
+    seen_count    INTEGER DEFAULT 1,
+    UNIQUE(group_url, text_key)
+);
+CREATE INDEX IF NOT EXISTS idx_decisions_seen ON post_decisions(last_seen);
+CREATE TABLE IF NOT EXISTS ai_intent (        -- Gemini chấm MUA / BÁN cho bài từ khóa chưa chắc (mỗi nội dung hỏi 1 lần)
+    text_key   TEXT PRIMARY KEY,
+    label      TEXT,
+    reason     TEXT,
+    model      TEXT,
+    created_at TEXT
+);
+CREATE TABLE IF NOT EXISTS group_scans (      -- mỗi lần quét bảng tin 1 nhóm (xoay vòng nhóm theo số bài cần mua)
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_url  TEXT,
+    scanned_at TEXT,
+    found      INTEGER    -- số bài đạt điều kiện bình luận trong lần quét
+);
+CREATE INDEX IF NOT EXISTS idx_scans_group ON group_scans(group_url, scanned_at);
+CREATE TABLE IF NOT EXISTS post_queue (       -- bài cửa sổ QUÉT tìm được, chờ cửa sổ BÌNH LUẬN (bài mới nhất trước)
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_url     TEXT UNIQUE,
+    group_url    TEXT,
+    group_name   TEXT,
+    post_text    TEXT,
+    topic        TEXT,
+    post_age_min INTEGER,  -- tuổi bài lúc quét thấy (phút)
+    posted_at    TEXT,     -- thời điểm đăng ước tính = lúc quét thấy - tuổi bài
+    found_at     TEXT,
+    group_score  REAL,     -- điểm ưu tiên nhóm (cùng thời điểm đăng: nhóm điểm cao trước)
+    status       TEXT,     -- Chờ / Đang bình luận / Xong / Bỏ qua / Quá hạn
+    result       TEXT,
+    done_at      TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_queue_status ON post_queue(status, posted_at);
+CREATE TABLE IF NOT EXISTS scan_claims (      -- chia nhóm giữa các cửa sổ QUÉT: nhóm đang quét / lần thử gần nhất
+    group_url   TEXT PRIMARY KEY,
+    scanner     INTEGER,  -- cửa sổ quét số mấy
+    claimed_at  TEXT,     -- bắt đầu quét
+    finished_at TEXT      -- quét xong (NULL = đang quét) — cũng là "lần thử gần nhất" (kể cả lần bị bỏ qua)
+);
+CREATE TABLE IF NOT EXISTS post_skips (       -- nhóm tạm không đăng bài bán (chỉ cho đăng tin bán, đầy bài chờ duyệt…)
+    group_url  TEXT PRIMARY KEY,
+    group_name TEXT,
+    reason     TEXT,
+    until      TEXT,      -- sau thời điểm này mới thử đăng lại
+    created_at TEXT
+);
 """
+SCANS_KEEP_DAYS = 30  # lịch sử quét nhóm giữ ... ngày
+QUEUE_KEEP_DAYS = 7   # hàng chờ bình luận: dòng đã xong giữ ... ngày
+
+# Trạng thái bài trong hàng chờ (post_queue)
+Q_WAITING, Q_RUNNING, Q_DONE, Q_SKIPPED, Q_EXPIRED = "Chờ", "Đang bình luận", "Xong", "Bỏ qua", "Quá hạn"
+COMMENT = "Bình luận"
+COMMENT_DRY = "Sẽ bình luận (chạy thử)"   # chạy thử (python main.py thuquet): đạt mọi bộ lọc nhưng KHÔNG bình luận
+SKIP = "Bỏ qua"
 
 # Bản nội dung bình luận
 FULL = "Đầy đủ"
@@ -155,6 +239,9 @@ class Database:
             cols = [r["name"] for r in c.execute("PRAGMA table_info(group_lists)")]
             if "priority" not in cols:
                 c.execute("ALTER TABLE group_lists ADD COLUMN priority INTEGER DEFAULT 0")
+            cols = [r["name"] for r in c.execute("PRAGMA table_info(group_scans)")]
+            if "avg_interactions" not in cols:  # tương tác trung bình mỗi bài (cảm xúc + bình luận + chia sẻ)
+                c.execute("ALTER TABLE group_scans ADD COLUMN avg_interactions REAL")
 
     def _conn(self):
         conn = sqlite3.connect(self.path, timeout=30)
@@ -243,6 +330,23 @@ class Database:
             "note = excluded.note, checked_at = excluded.checked_at, "
             "clicked_at = COALESCE(excluded.clicked_at, group_join.clicked_at)",
             (group_url, group_name, status, note, now if clicked else None, now))
+
+    def join_statuses(self):
+        """{link nhóm: trạng thái tham gia đã biết (Đã tham gia / Chưa tham gia / Chờ duyệt…)}"""
+        return {r["group_url"]: r["status"] for r in self.query("SELECT group_url, status FROM group_join")}
+
+    # ---- nhóm tạm không đăng bài bán ----
+    def skip_posting(self, group_url, group_name, reason, hours):
+        until = (datetime.now() + timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
+        self.execute("INSERT INTO post_skips (group_url, group_name, reason, until, created_at) VALUES (?, ?, ?, ?, ?) "
+                     "ON CONFLICT(group_url) DO UPDATE SET group_name = excluded.group_name, reason = excluded.reason, "
+                     "until = excluded.until, created_at = excluded.created_at",
+                     (group_url, group_name, reason, until, now_str()))
+
+    def posting_skips(self):
+        """{link nhóm: lý do} các nhóm đang tạm không đăng bài (chưa hết hạn)"""
+        return {r["group_url"]: r["reason"] for r in
+                self.query("SELECT group_url, reason FROM post_skips WHERE until > ?", (now_str(),))}
 
     def joins_today(self):
         """Số nhóm đã bấm Tham gia hôm nay"""
@@ -344,6 +448,50 @@ class Database:
         p["updated_at"] = now_str()
         self.set_setting("progress", json.dumps(p, ensure_ascii=False))
 
+    @staticmethod
+    def _scan_key(scanner):
+        return "scan_progress" if scanner == 1 else f"scan_progress_{scanner}"
+
+    def scan_progress(self, scanner=1):
+        """Tiến trình của cửa sổ QUÉT số ... (chạy song song) — tách riêng để không đè tiến trình cửa sổ bình luận"""
+        try:
+            return json.loads(self.get_setting(self._scan_key(scanner)) or "{}")
+        except ValueError:
+            return {}
+
+    def set_scan_progress(self, scanner=1, **fields):
+        p = {**self.scan_progress(scanner), **fields, "pid": os.getpid(), "updated_at": now_str()}
+        self.set_setting(self._scan_key(scanner), json.dumps(p, ensure_ascii=False))
+
+    # ---- chia nhóm giữa các cửa sổ QUÉT ----
+    def claim_group(self, group_url, scanner, stale_minutes):
+        """Giữ chỗ 1 nhóm để quét — cửa sổ quét khác không quét trùng. Giữ chỗ quá ... phút chưa xong (cửa sổ kia bị
+        tắt giữa chừng) thì coi như bỏ. Trả về True nếu giữ được"""
+        stale = (datetime.now() - timedelta(minutes=stale_minutes)).strftime("%Y-%m-%d %H:%M:%S")
+        with self._conn() as c:
+            cur = c.execute(
+                "INSERT INTO scan_claims (group_url, scanner, claimed_at, finished_at) VALUES (?, ?, ?, NULL) "
+                "ON CONFLICT(group_url) DO UPDATE SET scanner = excluded.scanner, claimed_at = excluded.claimed_at, "
+                "finished_at = NULL WHERE scan_claims.finished_at IS NOT NULL OR scan_claims.claimed_at < ? "
+                "OR scan_claims.scanner = excluded.scanner", (group_url, scanner, now_str(), stale))
+            return cur.rowcount > 0
+
+    def finish_claim(self, group_url, scanner):
+        self.execute("UPDATE scan_claims SET finished_at = ? WHERE group_url = ? AND scanner = ?",
+                     (now_str(), group_url, scanner))
+
+    def scan_attempts(self):
+        """{link nhóm: lần quét / thử quét gần nhất của bất kỳ cửa sổ quét nào}"""
+        return {r["group_url"]: r["finished_at"] for r in
+                self.query("SELECT group_url, finished_at FROM scan_claims WHERE finished_at IS NOT NULL")}
+
+    def busy_groups(self, scanner, stale_minutes):
+        """Nhóm cửa sổ quét khác đang quét (chưa quá ... phút)"""
+        stale = (datetime.now() - timedelta(minutes=stale_minutes)).strftime("%Y-%m-%d %H:%M:%S")
+        return {r["group_url"] for r in self.query(
+            "SELECT group_url FROM scan_claims WHERE finished_at IS NULL AND scanner != ? AND claimed_at >= ?",
+            (scanner, stale))}
+
     # ---- tên nhóm / nhóm đã xóa ----
     def group_names(self):
         return {r["group_url"]: r["group_name"] for r in self.query("SELECT * FROM group_names")}
@@ -424,6 +572,177 @@ class Database:
 
     def is_paused(self):
         return self.get_setting("paused", "0") == "1"
+
+    # ---- thông tin nhóm (số thành viên) ----
+    def get_group_stats(self, group_url):
+        rows = self.query("SELECT * FROM group_stats WHERE group_url = ?", (group_url,))
+        return rows[0] if rows else None
+
+    def save_group_stats(self, group_url, group_name, members, posts_today, activity, error=""):
+        old = self.get_group_stats(group_url)
+        if members is None and old and old["members"] is not None:
+            members = old["members"]  # đọc lỗi: giữ số cũ để xem trên web, nhưng vẫn ghi lỗi
+        self.execute(
+            "INSERT INTO group_stats (group_url, group_name, members, posts_today, activity, fetched_at, error) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(group_url) DO UPDATE SET group_name = "
+            "COALESCE(NULLIF(excluded.group_name, ''), group_stats.group_name), members = excluded.members, "
+            "posts_today = excluded.posts_today, activity = excluded.activity, fetched_at = excluded.fetched_at, "
+            "error = excluded.error",
+            (group_url, group_name, members, posts_today, activity, now_str(), error))
+
+    def all_group_stats(self):
+        return self.query("SELECT * FROM group_stats ORDER BY members DESC")
+
+    # ---- lịch sử quét nhóm & số bài cần mua mỗi nhóm (xoay vòng nhóm) ----
+    def add_group_scan(self, group_url, found, avg_interactions=None):
+        now = datetime.now()
+        old = (now - timedelta(days=SCANS_KEEP_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+        with self._conn() as c:
+            c.execute("DELETE FROM group_scans WHERE scanned_at < ?", (old,))
+            c.execute("INSERT INTO group_scans (group_url, scanned_at, found, avg_interactions) VALUES (?, ?, ?, ?)",
+                      (group_url, now.strftime("%Y-%m-%d %H:%M:%S"), found, avg_interactions))
+
+    def group_yields(self, days):
+        """{link nhóm: {'scans', 'first_scan', 'last_scan', 'buy', 'interactions'}} trong ... ngày gần nhất: số lần quét
+        bảng tin, lần quét đầu / gần nhất, số bài cần mua tìm được (bài đạt mọi bộ lọc — mỗi bài tính 1 lần, kể cả bài
+        chạy thử), tương tác trung bình mỗi bài (cảm xúc + bình luận + chia sẻ; None = chưa đo)"""
+        since = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+        empty = lambda: {"scans": 0, "first_scan": None, "last_scan": None, "buy": 0, "interactions": None}
+        out = {}
+        for r in self.query("SELECT group_url, COUNT(*) AS scans, MIN(scanned_at) AS first_scan, "
+                            "MAX(scanned_at) AS last_scan, AVG(avg_interactions) AS interactions FROM group_scans "
+                            "WHERE scanned_at >= ? GROUP BY group_url", (since,)):
+            out[r["group_url"]] = {**empty(), **{k: r[k] for k in ("scans", "first_scan", "last_scan", "interactions")}}
+        for r in self.query("SELECT group_url, COUNT(*) AS buy FROM post_decisions WHERE first_seen >= ? "
+                            "AND decision IN (?, ?) GROUP BY group_url", (since, COMMENT, COMMENT_DRY)):
+            out.setdefault(r["group_url"], empty())["buy"] = r["buy"]
+        return out
+
+    # ---- hàng chờ bình luận (cửa sổ QUÉT thêm vào, cửa sổ BÌNH LUẬN lấy ra) ----
+    def enqueue_post(self, group_url, group_name, post, group_score):
+        """Thêm 1 bài vào hàng chờ (post: {url, text, age, topic}). Trả về True nếu là bài mới trong hàng chờ"""
+        now = datetime.now()
+        posted = now - timedelta(minutes=post.get("age") or 0)
+        with self._conn() as c:
+            cur = c.execute(
+                "INSERT OR IGNORE INTO post_queue (post_url, group_url, group_name, post_text, topic, post_age_min, "
+                "posted_at, found_at, group_score, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (post["url"], group_url, group_name, (post.get("text") or "")[:1000], post.get("topic"), post.get("age"),
+                 posted.strftime("%Y-%m-%d %H:%M:%S"), now.strftime("%Y-%m-%d %H:%M:%S"), group_score, Q_WAITING))
+            return cur.rowcount > 0
+
+    def next_queued(self, max_age_minutes):
+        """Bài nên bình luận ngay: đăng gần đây nhất (cùng lúc thì nhóm điểm cao trước). Bài quá MAX_POST_AGE -> Quá hạn"""
+        cutoff = (datetime.now() - timedelta(minutes=max_age_minutes)).strftime("%Y-%m-%d %H:%M:%S")
+        self.execute("UPDATE post_queue SET status = ?, done_at = ? WHERE status = ? AND posted_at < ?",
+                     (Q_EXPIRED, now_str(), Q_WAITING, cutoff))
+        rows = self.query("SELECT * FROM post_queue WHERE status = ? ORDER BY posted_at DESC, group_score DESC LIMIT 1",
+                          (Q_WAITING,))
+        return rows[0] if rows else None
+
+    def set_queue_status(self, queue_id, status, result=""):
+        done = now_str() if status != Q_RUNNING else None
+        self.execute("UPDATE post_queue SET status = ?, result = ?, done_at = ? WHERE id = ?",
+                     (status, result, done, queue_id))
+
+    def requeue_interrupted(self):
+        """Bài đang bình luận dở khi cửa sổ bình luận bị tắt -> trả lại hàng chờ; dọn dòng cũ. Trả về số bài trả lại"""
+        old = (datetime.now() - timedelta(days=QUEUE_KEEP_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
+        self.execute("DELETE FROM post_queue WHERE found_at < ? AND status != ?", (old, Q_WAITING))
+        with self._conn() as c:
+            return c.execute("UPDATE post_queue SET status = ? WHERE status = ?", (Q_WAITING, Q_RUNNING)).rowcount
+
+    def forget_failed_post(self, post_url):
+        """Bài bình luận thất bại mà chưa gửi được bình luận nào (vd mạng chập chờn): xóa khỏi nhật ký để bình luận lại.
+        Trả về True nếu đã xóa (có thể thử lại)"""
+        rows = self.query("SELECT id FROM posts WHERE post_url = ?", (post_url,))
+        if not rows:
+            return True
+        post_id = rows[0]["id"]
+        sent = self.query("SELECT 1 FROM comments WHERE post_id = ? AND status IN (?, ?) LIMIT 1", (post_id, SENT, PENDING))
+        if sent:
+            return False
+        with self._conn() as c:
+            c.execute("DELETE FROM comments WHERE post_id = ?", (post_id,))
+            c.execute("DELETE FROM posts WHERE id = ?", (post_id,))
+        return True
+
+    def queue_counts(self):
+        """{trạng thái: số bài} của hàng chờ hôm nay"""
+        today = datetime.now().strftime("%Y-%m-%d")
+        return {r["status"]: r["n"] for r in self.query(
+            "SELECT status, COUNT(*) AS n FROM post_queue WHERE found_at LIKE ? OR status = ? GROUP BY status",
+            (today + "%", Q_WAITING))}
+
+    def groups_with_status(self, status, retry_days=None):
+        """Nhóm có trạng thái tham gia ... (vd Chưa tham gia — cửa sổ quét ghi lại, cửa sổ bình luận tự tham gia).
+        retry_days: bỏ nhóm vừa bấm Tham gia trong ... ngày (chưa tới lúc thử lại). Nhóm kiểm tra lâu nhất trước"""
+        cutoff = (datetime.now() - timedelta(days=retry_days or 0)).strftime("%Y-%m-%d %H:%M:%S")
+        return self.query("SELECT group_url, group_name FROM group_join WHERE status = ? "
+                          "AND (? IS NULL OR clicked_at IS NULL OR clicked_at < ?) ORDER BY checked_at",
+                          (status, retry_days, cutoff))
+
+    # ---- quyết định bình luận / bỏ qua từng bài ----
+    def log_decision(self, group_url, group_name, text_key, post_text, decision, reason, post_url=None,
+                     post_age_min=None, topic=None, intent=None, intent_detail=None, engagement=None, score=None):
+        """Ghi / cập nhật quyết định cho 1 bài (gặp lại bài cũ thì tăng seen_count).
+        Trả về True nếu là bài mới hoặc quyết định thay đổi (để ghi ra log chạy)"""
+        old = self.query("SELECT decision, reason FROM post_decisions WHERE group_url = ? AND text_key = ?",
+                         (group_url, text_key))
+        r, c, s = (engagement.reactions, engagement.comments, engagement.shares) if engagement else (None, None, None)
+        now = now_str()
+        self.execute(
+            "INSERT INTO post_decisions (group_url, group_name, text_key, post_text, post_url, post_age_min, topic, "
+            "intent, intent_detail, reactions, comments, shares, score, decision, reason, first_seen, last_seen) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(group_url, text_key) DO UPDATE SET post_url = COALESCE(excluded.post_url, post_url), "
+            "post_age_min = excluded.post_age_min, topic = excluded.topic, intent = excluded.intent, "
+            "intent_detail = excluded.intent_detail, reactions = COALESCE(excluded.reactions, reactions), "
+            "comments = COALESCE(excluded.comments, comments), shares = COALESCE(excluded.shares, shares), "
+            "score = COALESCE(excluded.score, score), decision = excluded.decision, reason = excluded.reason, "
+            "last_seen = excluded.last_seen, seen_count = seen_count + 1",
+            (group_url, group_name, text_key, post_text, post_url, post_age_min, topic, intent, intent_detail,
+             r, c, s, score, decision, reason, now, now))
+        # chỉ con số (cảm xúc, bình luận…) đổi thì không tính là quyết định mới — tránh ghi log chạy mỗi lần quét lại
+        same = lambda a, b: re.sub(r"\d+([.,]\d+)?", "#", a or "") == re.sub(r"\d+([.,]\d+)?", "#", b or "")
+        return not old or old[0]["decision"] != decision or not same(old[0]["reason"], reason)
+
+    # ---- kết quả hỏi AI (Gemini) ----
+    def get_ai_intent(self, text_key):
+        rows = self.query("SELECT * FROM ai_intent WHERE text_key = ?", (text_key,))
+        return rows[0] if rows else None
+
+    def save_ai_intent(self, text_key, label, reason, model):
+        self.execute("INSERT OR REPLACE INTO ai_intent (text_key, label, reason, model, created_at) VALUES (?, ?, ?, ?, ?)",
+                     (text_key, label, reason, model, now_str()))
+
+    def ai_calls_today(self):
+        return self.query("SELECT COUNT(*) AS n FROM ai_intent WHERE created_at LIKE ?",
+                          (datetime.now().strftime("%Y-%m-%d") + "%",))[0]["n"]
+
+    def commented_text(self, group_url, text_key):
+        """Bài (nhận theo nội dung) đã được bình luận trước đó chưa"""
+        return bool(self.query(
+            "SELECT 1 FROM post_decisions d JOIN posts p ON p.post_url = d.post_url "
+            "WHERE d.group_url = ? AND d.text_key = ? LIMIT 1", (group_url, text_key)))
+
+    def decisions(self, intent=None, decision=None, day=None, limit=300):
+        where, params = [], []
+        if intent:
+            where.append("intent = ?")
+            params.append(intent)
+        if decision:
+            where.append("decision = ?")
+            params.append(decision)
+        if day:
+            where.append("last_seen LIKE ?")
+            params.append(day + "%")
+        sql = "SELECT * FROM post_decisions" + (" WHERE " + " AND ".join(where) if where else "")
+        return self.query(sql + " ORDER BY last_seen DESC LIMIT ?", (*params, limit))
+
+    def decision_counts(self, day):
+        return self.query("SELECT intent, decision, COUNT(*) AS n FROM post_decisions WHERE last_seen LIKE ? "
+                          "GROUP BY intent, decision", (day + "%",))
 
     # ---- xuất Excel ----
     def comments_table(self):

@@ -292,6 +292,29 @@ def group_priority(groups, config):
     return sorted(groups, key=lambda g: (not g.get("priority"), g.get("region") != config.PRIORITY_REGION, -score(g)))
 
 
+def with_group_stats(groups, db):
+    """Thay số thành viên / mức hoạt động trong file Excel bằng số đọc được ở trang Giới thiệu nhóm (bảng group_stats)
+    để xếp ưu tiên đúng thực tế"""
+    stats = {s["group_url"]: s for s in db.all_group_stats()}
+    out = []
+    for g in groups:
+        s = stats.get(normalize_group_url(g["group_url"]))
+        if s and s["members"]:
+            g = {**g, "members": s["members"], "activity": s["activity"] or g.get("activity", "")}
+        out.append(g)
+    return out
+
+
+def with_hot_groups(groups, db, config):
+    """Nhóm tương tác cao (config.HOT_GROUPS) đứng đầu, đánh dấu hot=True; nhóm chưa có trong danh sách nào thì thêm vào"""
+    hot_urls = list(dict.fromkeys(normalize_group_url(u) for u in config.HOT_GROUPS))
+    by_url, names = {g["group_url"]: g for g in groups}, db.group_names()
+    hot = [{**by_url.get(u, {"group_url": u, "group_name": names.get(u) or u.rstrip("/").split("/")[-1],
+                             "list": "Nhóm tương tác cao (config.py)", "region": ""}), "hot": True}
+           for u in hot_urls]
+    return hot + [g for g in groups if g["group_url"] not in hot_urls]
+
+
 def load_groups(db, config, enabled_only=True):
     """Gộp nhóm từ các danh sách đang bật (bỏ trùng link), mỗi nhóm ghi kèm tên danh sách ('list')"""
     ensure_builtin(db, config)

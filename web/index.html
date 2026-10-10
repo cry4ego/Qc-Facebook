@@ -194,6 +194,7 @@
     <span id="state" class="pill">Đang tải…</span>
     <nav class="tabs">
       <button class="tab" data-tab="log">Bình luận</button>
+      <button class="tab" data-tab="decisions">Phân loại bài</button>
       <button class="tab" data-tab="products">Sản phẩm</button>
       <button class="tab" data-tab="lists">Danh sách nhóm</button>
     </nav>
@@ -223,6 +224,7 @@
     </div>
     <div id="pg-text" class="pg-text" hidden></div>
     <div id="pg-last" class="muted" style="font-size:13px"></div>
+    <div id="pg-scan" class="muted" style="font-size:13px" hidden></div>
     <details id="pg-logwrap" open>
       <summary>Nhật ký chạy (giống cửa sổ terminal) — <label style="font-size:12px"><input type="checkbox" id="pg-follow" checked> tự cuộn xuống dòng mới</label></summary>
       <pre id="pg-log"></pre>
@@ -270,6 +272,43 @@
     <table>
       <thead><tr><th>Bắt đầu</th><th>Kết thúc</th><th>Nhóm đã quét</th><th>Bài được chọn</th><th>Đã bình luận</th><th>Ghi chú</th></tr></thead>
       <tbody id="runs"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="tab-decisions" hidden>
+  <h2 style="margin-top:0">Phân loại bài viết</h2>
+  <p class="muted" style="margin-top:0">Mỗi bài trong nhóm được xét lần lượt: <b>chủ đề</b> (màn hình / PC) → <b>ý định</b>
+    (chỉ bình luận bài của người cần <b>MUA</b>; bỏ bài <b>BÁN</b> và bài <b>KHÔNG XÁC ĐỊNH</b>) → <b>điểm tương tác</b>.
+    Nên xem lại các bài <b>KHÔNG XÁC ĐỊNH</b>: bài nào thật ra là người cần mua thì thêm từ khóa vào
+    <code>data/tu_khoa_mua_ban.txt</code> (thử nhanh: <code>python main.py phanloai "nội dung"</code>).
+    <span id="d-settings"></span></p>
+  <div class="tiles" id="d-tiles"></div>
+  <div class="filters">
+    <input type="date" id="d-date">
+    <select id="d-intent">
+      <option value="">Mọi ý định</option><option>MUA</option><option>BÁN</option><option>KHÔNG XÁC ĐỊNH</option>
+    </select>
+    <select id="d-decision"><option value="">Bình luận &amp; bỏ qua</option><option>Bình luận</option>
+      <option>Sẽ bình luận (chạy thử)</option><option>Bỏ qua</option></select>
+    <input type="search" id="d-q" placeholder="Tìm theo nhóm, nội dung, lý do…">
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Lúc</th><th>Nhóm</th><th>Nội dung bài</th><th>Ý định</th><th>Tương tác</th><th>Quyết định · lý do</th></tr></thead>
+      <tbody id="d-rows"></tbody>
+    </table>
+  </div>
+
+  <h2>Chất lượng nhóm</h2>
+  <p class="muted" style="margin-top:0">Số thành viên đọc ở trang Giới thiệu của nhóm, lưu lại <span id="g-cache">24</span> giờ rồi
+    mới đọc lại. Chỉ quét nhóm từ <b id="g-min">5.000</b> thành viên (nhóm Hà Nội chỉ cần từ <b>500</b>); nhóm không đọc
+    được số thành viên cũng bị bỏ qua.
+    <button id="g-refresh">Cập nhật số thành viên</button> <span id="g-note"></span></p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Nhóm</th><th>Thành viên</th><th>Bài mới / ngày</th><th>Cập nhật lúc</th><th>Quét?</th></tr></thead>
+      <tbody id="g-rows"></tbody>
     </table>
   </div>
 </section>
@@ -561,6 +600,17 @@ async function loadProgress() {
   if (!txt.hidden) txt.innerHTML = `${esc(p.post_text)}\n<a href="${esc(p.post_url)}" target="_blank" rel="noopener">Mở bài đang bình luận ↗</a>`;
   $("#pg-last").innerHTML = p.last_result
     ? `Bài vừa xong: ${esc(p.last_result)} — <a href="${esc(p.last_url)}" target="_blank" rel="noopener">mở ↗</a>` : "";
+  const scan = $("#pg-scan");
+  scan.hidden = !p.parallel;
+  if (p.parallel) {
+    const q = p.queue || {};
+    const line = s => `🔎 Cửa sổ quét ${s.n}: ` + (s.alive
+      ? `${esc(s.phase || "")}${s.group_name ? `: <b>${esc(s.group_name)}</b>` : ""}${s.step ? ` — ${esc(s.step)}` : ""}`
+      : `<b>đã tắt</b> — bấm đúp chay-ngam.bat (lần đầu: chạy <code>python main.py taophienquet</code>)`);
+    scan.innerHTML = (p.scans || []).map(line).join("<br>")
+      + `<br>📥 Hàng chờ: <b>${q["Chờ"] || 0}</b> bài chờ bình luận`
+      + ` · hôm nay đã xong ${q["Xong"] || 0}, bỏ qua ${q["Bỏ qua"] || 0}, quá hạn ${q["Quá hạn"] || 0}`;
+  }
 }
 async function loadLog() {
   if (!$("#pg-logwrap").open) return;
@@ -574,13 +624,14 @@ async function loadLog() {
 $("#pg-logwrap").addEventListener("toggle", loadLog);
 
 // ---------- Tabs ----------
-const TABS = ["log", "products", "lists"];
+const TABS = ["log", "decisions", "products", "lists"];
 function showTab(t) {
   TABS.forEach(x => {
     $(`#tab-${x}`).hidden = x !== t;
     document.querySelector(`.tab[data-tab="${x}"]`).classList.toggle("active", x === t);
   });
   history.replaceState(null, "", "#" + t);
+  if (t === "decisions") { loadDecisions(); loadGroupStats(); }
   if (t === "products") loadProducts();
   if (t === "lists") loadLists();
   if (t === "log") { refresh(); loadProgress(); loadLog(); }
@@ -594,6 +645,63 @@ const postForm = async (url, data, method = "POST") => {
   return j;
 };
 const postJSON = (url, obj) => fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(obj)});
+
+// ---------- Phân loại bài & chất lượng nhóm ----------
+const INTENT_CLS = {"MUA": "ok", "BÁN": "bad", "KHÔNG XÁC ĐỊNH": "warn"};
+const num = n => n == null ? "—" : Number(n).toLocaleString("vi-VN");
+let decisionsCache = [];
+async function loadDecisions() {
+  const qs = new URLSearchParams({date: $("#d-date").value, intent: $("#d-intent").value, decision: $("#d-decision").value});
+  const d = await (await fetch("/api/decisions?" + qs)).json();
+  const s = d.settings, w = s.weights;
+  $("#d-settings").innerHTML = ` Đang đặt: lọc ý định <b>${s.intent_filter ? "BẬT" : "TẮT"}</b>;
+    AI Gemini chấm bài từ khóa chưa chắc <b>${s.ai ? "BẬT" : "TẮT"}</b>${s.ai ? ` (hôm nay hỏi ${s.ai_calls_today}/${s.ai_limit} lần)` : ""};
+    ${s.min_engagement > 0 ? `chỉ bình luận bài có điểm tương tác ≥ <b>${s.min_engagement}</b>
+      (cảm xúc ×${w.reaction} + bình luận ×${w.comment} + chia sẻ ×${w.share})`
+      : "<b>không chờ tương tác</b> — bài cần mua được bình luận ngay"} — sửa trong <code>config.py</code>.`;
+  const count = (intent, decision) => d.counts.filter(c => (!intent || c.intent === intent)
+    && (!decision || c.decision === decision)).reduce((a, c) => a + c.n, 0);
+  $("#d-tiles").innerHTML = [
+    ["", "Bình luận", "ok", "Chọn để bình luận"], ["MUA", "", "", "Bài MUA"], ["BÁN", "", "bad", "Bài BÁN (bỏ qua)"],
+    ["KHÔNG XÁC ĐỊNH", "", "warn", "Không xác định (bỏ qua)"], ["", "Bỏ qua", "", "Tổng bài bỏ qua"],
+  ].map(([i, dec, cls, label]) => `<div class="tile ${cls}"><div class="n">${count(i, dec)}</div><div class="l">${label}</div></div>`).join("");
+  decisionsCache = d.rows;
+  drawDecisions();
+}
+function drawDecisions() {
+  const q = $("#d-q").value.trim().toLowerCase();
+  const rows = decisionsCache.filter(r => !q || [r.group_name, r.post_text, r.reason].join(" ").toLowerCase().includes(q));
+  $("#d-rows").innerHTML = rows.map(r => {
+    const eng = r.score == null ? '<span class="muted">chưa đọc</span>'
+      : `<b>${r.score}</b> <span class="muted">(${r.reactions} cảm xúc · ${r.comments} bl · ${r.shares} chia sẻ)</span>`;
+    const text = esc((r.post_text || "").slice(0, 220)) + ((r.post_text || "").length > 220 ? "…" : "");
+    return `<tr><td>${esc(hm(r.last_seen))}${r.seen_count > 1 ? `<br><span class="muted">gặp ${r.seen_count} lần</span>` : ""}</td>
+      <td>${esc(r.group_name)}</td>
+      <td title="${esc(r.post_text)}">${text}${r.post_url ? `<br><a href="${esc(r.post_url)}" target="_blank" rel="noopener">Mở bài</a>` : ""}</td>
+      <td>${r.intent ? `<span class="b ${INTENT_CLS[r.intent] || ""}">${esc(r.intent)}</span>` : '<span class="muted">—</span>'}
+        ${r.topic ? `<br><span class="muted">${esc(r.topic)}</span>` : ""}</td>
+      <td>${eng}</td>
+      <td><span class="b ${r.decision === "Bình luận" ? "ok" : r.decision.startsWith("Sẽ") ? "info" : ""}">${esc(r.decision)}</span><br>
+        <span class="muted" style="font-size:12px">${esc(r.reason)}</span></td></tr>`;
+  }).join("") || `<tr><td colspan="6" class="muted">Chưa có bài nào được xét trong ngày này.</td></tr>`;
+}
+async function loadGroupStats() {
+  const d = await (await fetch("/api/groupstats")).json();
+  $("#g-note").innerHTML = d.refresh_pending
+    ? '<span class="b info">Đã yêu cầu — bot sẽ đọc lại số thành viên ở vòng quét tới</span>' : "";
+  $("#g-rows").innerHTML = d.rows.map(r => `<tr>
+    <td><a href="${esc(r.group_url)}" target="_blank" rel="noopener">${esc(r.group_name || r.group_url)}</a></td>
+    <td>${num(r.members)}</td><td>${r.posts_today == null ? "—" : num(r.posts_today)}</td>
+    <td>${esc(r.fetched_at)}${r.error ? `<br><span class="b bad">${esc(r.error)}</span>` : ""}</td>
+    <td><span class="b ${r.ok ? "ok" : "bad"}">${r.ok ? "Quét" : "Bỏ qua"}</span> <span class="muted">${esc(r.reason)}</span></td></tr>`).join("")
+    || `<tr><td colspan="5" class="muted">Chưa có dữ liệu — bot đọc số thành viên khi quét từng nhóm.</td></tr>`;
+}
+["#d-date", "#d-intent", "#d-decision"].forEach(s => $(s).addEventListener("change", loadDecisions));
+$("#d-q").addEventListener("input", drawDecisions);
+$("#g-refresh").addEventListener("click", async () => {
+  await fetch("/api/groupstats/refresh", {method: "POST"});
+  loadGroupStats();
+});
 
 // ---------- Sản phẩm ----------
 let productsCache = [], editingId = null;
@@ -946,6 +1054,7 @@ $("#l-form").addEventListener("submit", async e => {
 });
 
 $("#f-date").value = today();
+$("#d-date").value = today();
 showTab(TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "log");
 if ($("#tab-log").hidden) loadSummary();
 setInterval(() => { if (!$("#tab-log").hidden) { loadProgress(); loadLog(); } }, 4000);

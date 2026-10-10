@@ -11,6 +11,7 @@ from selenium.webdriver.common.keys import Keys
 JOINED = "Đã tham gia"
 PENDING = "Chờ duyệt"
 NOT_JOINED = "Chưa tham gia"
+UNAVAILABLE = "Không xem được nhóm"   # trang nhóm báo "Bạn hiện không xem được nội dung này" (thường do bị chặn khỏi nhóm)
 UNKNOWN = "Không xác định"
 
 # Cột "use" trong group_status.xlsx — bạn có thể sửa tay
@@ -30,23 +31,10 @@ RULE_FLAGS = [
 
 STATUS_COLUMNS = ["group_url", "group_name", "category", "status", "use", "flags", "checked_at", "rules_file"]
 
-XP_JOINED_BTN = "//div[@role='main']//div[@role='button'][@aria-label='Đã tham gia' or @aria-label='Joined']"
-XP_JOINED = ("//div[@aria-label='Đã tham gia' or @aria-label='Joined']"
-             " | //div[@role='main']//span[contains(text(), 'Bạn viết gì đi') or contains(text(), 'Viết gì đó')"
-             " or contains(text(), 'Write something')]")
-XP_PENDING = ("//div[@aria-label='Hủy yêu cầu' or @aria-label='Cancel request']"
-              " | //span[text()='Hủy yêu cầu' or text()='Cancel request']")
-XP_JOIN_BTN = ("//div[@role='main']//div[@role='button'][@aria-label='Tham gia nhóm' or @aria-label='Join group'"
-               " or .//span[text()='Tham gia nhóm' or text()='Join group']]")
-
-# Cửa sổ hiện ra sau khi bấm Tham gia: câu hỏi duyệt thành viên và/hoặc ô "Tôi đồng ý với nội quy nhóm"
-XP_TEXT_FIELDS = (".//textarea | .//input[@type='text' or not(@type)]"
-                  " | .//*[@role='textbox' and @contenteditable='true']")
-XP_CHECKBOXES = ".//input[@type='checkbox'] | .//*[@role='checkbox']"
-XP_RADIOS = ".//input[@type='radio'] | .//*[@role='radio']"
-SUBMIT_TEXTS = ["Gửi", "Submit", "Tôi đồng ý", "Đồng ý", "I agree", "Agree", "Tham gia nhóm", "Join group",
-                "Tham gia", "Join", "Tiếp", "Next", "Xong", "Done"]
-CLOSE_TEXTS = ["Đóng", "Close", "Hủy", "Cancel", "Thoát", "Rời khỏi", "Bỏ", "Discard", "Leave", "Exit"]
+# Selector Facebook (nút Tham gia / Đã tham gia, cửa sổ câu hỏi…) nằm trong modules/fb_selectors.py
+from modules import fb_selectors as sel
+from modules.fb_selectors import (XP_JOINED_BTN, XP_JOINED, XP_PENDING, XP_JOIN_BTN, XP_TEXT_FIELDS, XP_CHECKBOXES,
+                                  XP_RADIOS, SUBMIT_TEXTS, CLOSE_TEXTS)
 
 
 def _visible(driver, xpath, root=None):
@@ -67,7 +55,22 @@ def detect_status(driver):
         return NOT_JOINED
     if _visible(driver, XP_JOINED):
         return JOINED
+    if is_unavailable(driver):
+        return UNAVAILABLE
     return UNKNOWN
+
+
+def page_has(driver, phrases):
+    """Trang đang mở có 1 trong các cụm chữ (so chữ thường)"""
+    try:
+        text = driver.find_element(By.TAG_NAME, "body").text.lower()
+    except Exception:
+        return False
+    return any(p in text for p in phrases)
+
+
+def is_unavailable(driver):
+    return page_has(driver, sel.UNAVAILABLE_PHRASES)
 
 
 def _join_button(driver):
@@ -78,8 +81,8 @@ def _join_button(driver):
 
 def dismiss_welcome(driver):
     """Đóng cửa sổ "chào mừng bạn đến với nhóm" (nút Tiếp tục) nếu có"""
-    for d in _visible(driver, "//div[@role='dialog']"):
-        btn = _button(driver, d, ["Tiếp tục", "Continue", "Đóng", "Close"])
+    for d in _visible(driver, sel.XP_DIALOG):
+        btn = _button(driver, d, sel.WELCOME_TEXTS)
         if btn:
             driver.execute_script("arguments[0].click();", btn)
             time.sleep(1.5)
@@ -88,9 +91,7 @@ def dismiss_welcome(driver):
 def _button(driver, root, texts):
     """Nút (không bị khóa) có aria-label hoặc chữ đúng 1 trong texts, ưu tiên theo thứ tự texts"""
     for t in texts:
-        xp = (f".//div[@role='button' or self::button][not(@aria-disabled='true')]"
-              f"[@aria-label='{t}' or .//span[normalize-space(text())='{t}']]")
-        els = _visible(driver, xp, root)
+        els = _visible(driver, sel.xp_button(t), root)
         if els:
             return els[-1]
     return None
@@ -103,8 +104,8 @@ def _close_dialog(driver, dialog):
     else:
         driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
     time.sleep(2)
-    for d in _visible(driver, "//div[@role='dialog']"):  # hỏi "Bỏ câu trả lời?" -> đồng ý thoát
-        btn = _button(driver, d, ["Thoát", "Rời khỏi", "Bỏ", "Discard", "Leave", "Exit"])
+    for d in _visible(driver, sel.XP_DIALOG):  # hỏi "Bỏ câu trả lời?" -> đồng ý thoát
+        btn = _button(driver, d, sel.DISCARD_TEXTS)
         if btn:
             driver.execute_script("arguments[0].click();", btn)
             time.sleep(1)
@@ -146,13 +147,13 @@ def answer_questions(driver, dialog, answer):
     Trả về (số ô đã điền, số ô đã tick)"""
     filled = sum(_fill_text(driver, el, answer) for el in _visible(driver, XP_TEXT_FIELDS, dialog))
     ticked = sum(_tick(driver, el) for el in dialog.find_elements(By.XPATH, XP_CHECKBOXES))
-    groups = dialog.find_elements(By.XPATH, ".//*[@role='radiogroup']")
+    groups = dialog.find_elements(By.XPATH, sel.XP_RADIOGROUPS)
     for grp in groups:
-        radios = grp.find_elements(By.XPATH, ".//input[@type='radio'] | .//*[@role='radio']")
+        radios = grp.find_elements(By.XPATH, XP_RADIOS)
         if radios and not any(r.get_attribute("aria-checked") == "true" or r.is_selected() for r in radios):
             ticked += _tick(driver, radios[0])
     if not groups:  # radio không nằm trong radiogroup: chọn ô đầu tiên
-        radios = dialog.find_elements(By.XPATH, ".//input[@type='radio'] | .//*[@role='radio']")
+        radios = dialog.find_elements(By.XPATH, XP_RADIOS)
         if radios and not any(r.get_attribute("aria-checked") == "true" or r.is_selected() for r in radios):
             ticked += _tick(driver, radios[0])
     return filled, ticked
@@ -169,7 +170,7 @@ def auto_join(driver, logger=None, answer="ok"):
 
     note = ""
     for _ in range(3):  # có nhóm hỏi nhiều bước (câu hỏi -> nội quy -> gửi)
-        dialogs = [d for d in _visible(driver, "//div[@role='dialog']")
+        dialogs = [d for d in _visible(driver, sel.XP_DIALOG)
                    if d.find_elements(By.XPATH, XP_TEXT_FIELDS + " | " + XP_CHECKBOXES + " | " + XP_RADIOS)
                    or _button(driver, d, SUBMIT_TEXTS)]
         if not dialogs:
@@ -240,7 +241,7 @@ class GroupChecker:
         """Lưu nội dung trang Giới thiệu (có phần nội quy) ra file .txt, trả về (đường dẫn, các cờ cảnh báo)"""
         self.driver.get(group_url.rstrip("/") + "/about")
         time.sleep(random.uniform(4, 7))
-        mains = self.driver.find_elements(By.XPATH, "//div[@role='main']")
+        mains = self.driver.find_elements(By.XPATH, sel.XP_MAIN)
         text = mains[0].text if mains else self.driver.find_element(By.TAG_NAME, "body").text
 
         path = os.path.join(self.config.RULES_DIR, f"{_group_id(group_url)}.txt")

@@ -17,6 +17,8 @@ from modules.db import Database, SENT, PENDING, BLOCKED, ERROR, REJECTED, REJECT
 from modules import products as prod
 from modules import group_lists as gl
 from modules.group_checker import usable_groups
+from modules.group_finder import is_hanoi_group
+from modules import filters as flt
 
 WEB_DIR = os.path.join(Config.BASE_DIR, "web")
 app = Flask(__name__, static_folder=None)
@@ -123,6 +125,45 @@ def runs():
 @app.get("/api/joins")
 def joins():
     return jsonify(db.query("SELECT * FROM group_join ORDER BY checked_at DESC"))
+
+
+@app.get("/api/decisions")
+def decisions():
+    """Quyết định bình luận / bỏ qua từng bài (kèm ý định MUA/BÁN, điểm tương tác, lý do) — tab Phân loại bài"""
+    day = request.args.get("date") or datetime.now().strftime("%Y-%m-%d")
+    limit = request.args.get("limit", "300")
+    rows = db.decisions(request.args.get("intent") or None, request.args.get("decision") or None, day,
+                        limit=min(int(limit), 2000) if limit.isdigit() else 300)
+    return jsonify({
+        "rows": rows,
+        "counts": db.decision_counts(day),
+        "settings": {"intent_filter": Config.INTENT_FILTER, "min_engagement": Config.POST_MIN_ENGAGEMENT,
+                     "ai": bool(Config.INTENT_AI and Config.GEMINI_API_KEY), "ai_calls_today": db.ai_calls_today(),
+                     "ai_limit": Config.GEMINI_MAX_CALLS_PER_DAY,
+                     "weights": Config.ENGAGEMENT_WEIGHTS, "min_members": Config.GROUP_MIN_MEMBERS,
+                     "min_members_hanoi": Config.GROUP_MIN_MEMBERS_HANOI,
+                     "min_posts_per_day": Config.GROUP_MIN_POSTS_PER_DAY,
+                     "cache_hours": Config.GROUP_STATS_CACHE_HOURS},
+    })
+
+
+@app.get("/api/groupstats")
+def group_stats():
+    """Số thành viên / bài mỗi ngày của các nhóm (đọc ở trang Giới thiệu) và nhóm nào đủ điều kiện quét"""
+    rows = []
+    regions = {g["group_url"]: g.get("region", "") for g in gl.load_groups(db, Config, enabled_only=False)}
+    for s in db.all_group_stats():
+        hanoi = is_hanoi_group({**s, "region": regions.get(s["group_url"], "")})  # nhóm Hà Nội cần ít thành viên hơn
+        v = flt.run_filters(flt.GROUP_FILTERS, {**s, "hanoi": hanoi}, Config)
+        rows.append({**s, "ok": v.ok, "reason": v.reason})
+    return jsonify({"rows": rows, "refresh_pending": db.get_setting("group_stats_refresh") == "1"})
+
+
+@app.post("/api/groupstats/refresh")
+def group_stats_refresh():
+    """Yêu cầu bot đọc lại số thành viên mọi nhóm ở vòng quét tới (bỏ qua cache 24 giờ)"""
+    db.set_setting("group_stats_refresh", "1")
+    return jsonify({"ok": True})
 
 
 @app.post("/api/pause")
@@ -381,20 +422,33 @@ def lists_group_delete(key):
 
 
 # ---------- Tiến trình & nhật ký ----------
+def _script_alive(pid, *args):
+    """Tiến trình pid còn chạy và là main.py (args: tham số dòng lệnh phải có, vd "quet")"""
+    if not pid:
+        return False
+    try:
+        cmd = psutil.Process(int(pid)).cmdline()
+        return any("main.py" in a for a in cmd) and all(x in cmd for x in args)
+    except (psutil.Error, ValueError):
+        return False
+
+
+def _age_seconds(updated_at):
+    if not updated_at:
+        return None
+    return int((datetime.now() - datetime.strptime(updated_at, "%Y-%m-%d %H:%M:%S")).total_seconds())
+
+
 @app.get("/api/progress")
 def progress():
     p = db.progress()
-    alive = False
-    if p.get("pid"):
-        try:
-            proc = psutil.Process(int(p["pid"]))
-            alive = proc.is_running() and any("main.py" in a for a in proc.cmdline())
-        except (psutil.Error, ValueError):
-            alive = False
-    age = None
-    if p.get("updated_at"):
-        age = int((datetime.now() - datetime.strptime(p["updated_at"], "%Y-%m-%d %H:%M:%S")).total_seconds())
-    return jsonify({**p, "alive": alive, "age": age, "paused": db.is_paused()})
+    scans = []
+    for n in range(1, Config.SCAN_WINDOWS + 1):  # cửa sổ quét 1: "main.py quet", cửa sổ n: "main.py quet n"
+        s = db.scan_progress(n)
+        args = ("quet",) if n == 1 else ("quet", str(n))
+        scans.append({**s, "n": n, "alive": _script_alive(s.get("pid"), *args), "age": _age_seconds(s.get("updated_at"))})
+    return jsonify({**p, "alive": _script_alive(p.get("pid")), "age": _age_seconds(p.get("updated_at")),
+                    "paused": db.is_paused(), "parallel": Config.PARALLEL, "scans": scans, "queue": db.queue_counts()})
 
 
 LOG_NOISE = re.compile(r"WebDriver manager|found in cache|Retrying \(Retry|Get LATEST|There is no \[win")

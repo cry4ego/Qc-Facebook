@@ -1,0 +1,173 @@
+# ============================================================================================
+#  TỪ KHÓA NHẬN DIỆN Ý ĐỊNH BÀI VIẾT: MUA (người cần mua) / BÁN (người bán, shop, đối thủ)
+# ============================================================================================
+#  Bot chỉ bình luận bài được chấm là MUA. Bài BÁN và bài KHÔNG XÁC ĐỊNH đều bị bỏ qua
+#  (xem lại trên web: tab "Phân loại bài").
+#
+#  Cách viết:
+#   - Mỗi dòng 1 cụm từ, không phân biệt chữ hoa/thường. Khớp nguyên từ: "bán" không khớp "bánh".
+#   - Thêm trọng số (điểm) sau dấu |, ví dụ:   cần mua | 3      (không ghi = 2 điểm)
+#   - Cụm từ nằm trong ~50 ký tự đầu bài được nhân 1,5 điểm (câu mở đầu thường nói rõ ý định).
+#   - Mỗi cụm từ chỉ tính 1 lần dù xuất hiện nhiều lần.
+#   - Dòng bắt đầu bằng "re:" là biểu thức chính quy (regex) — dành cho người rành kỹ thuật.
+#     Có thể đặt tên dễ đọc cho dòng regex (hiện trong log / web):   re: <regex> | 3 | nêu ngân sách
+#   - Dòng bắt đầu bằng # là chú thích, bị bỏ qua.
+#   - Bài viết không dấu: thêm cả cụm từ không dấu (vd "can mua").
+#
+#  Cách chấm: bài là MUA khi điểm MUA >= INTENT_MIN_SCORE và hơn điểm BÁN ít nhất INTENT_MARGIN
+#  (2 số này trong config.py). Ngược lại là BÁN, hoặc KHÔNG XÁC ĐỊNH nếu không bên nào hơn rõ.
+#
+#  Sửa xong chỉ cần lưu file: bot tự đọc lại từ bài tiếp theo, không cần khởi động lại.
+#  Kiểm tra nhanh 1 câu:  python main.py phanloai "Cần tìm màn 27 inch tầm 2tr"
+# ============================================================================================
+
+[MUA]
+# --- Nói thẳng nhu cầu mua ---
+cần mua | 3
+tìm mua | 3
+muốn mua | 3
+định mua | 3
+cần tìm | 3
+đang tìm | 3
+tìm | 2
+kiếm | 2
+tìm màn | 3
+kiếm màn | 3
+cần màn | 3
+cần 1 | 2
+cần pc | 3
+cần gấp | 2
+lấy luôn | 2
+lấy ngay | 2
+ưu tiên | 2
+xin giá | 2
+# --- Hỏi người khác có hàng không ---
+ai có | 3
+bác nào có | 3
+ae nào có | 3
+anh em nào có | 3
+có bác nào | 3
+có ai | 2
+ai bán | 3
+# --- Hỏi build / tư vấn mua ---
+cần build | 3
+muốn build | 3
+build được | 3
+có build | 3
+tư vấn | 2
+mua ở đâu | 3
+nên mua | 3
+# --- Không dấu ---
+can mua | 3
+can tim | 3
+tim mua | 3
+tim man | 3
+kiem man | 3
+# --- Mở đầu bài bằng "tìm / kiếm / cần mua…" ---
+re: ^\W*((em|e|mình|tôi|anh|chị|ae)\s+)?(cần tìm|cần mua|cần kiếm|cần màn|tìm|kiếm|mua)(?!\w) | 3 | mở đầu bằng tìm / cần mua
+# --- Đầu bài nêu ngân sách: "10m được bộ nào…", "3tr có màn nào…" ---
+re: ^\W*\d+([.,]\d+)?\s*(m|tr|triệu|củ)\s*(đc|được|có)(?!\w) | 3 | mở đầu bằng ngân sách
+# --- Nêu ngân sách: "tầm 2tr", "dưới 1 triệu", "tc 500k", "tài chính 12-13m" ---
+#     ("tầm / khoảng / dưới" phải kèm đơn vị tiền hoặc số ≥ 3 chữ số — để "tầm 15-20 phút" không bị tính là ngân sách)
+re: (dưới|tầm|khoảng|tối đa)\s*~?\d+([.,]\d+)?\s*(-\s*\d+([.,]\d+)?\s*)?(k|tr|triệu|củ|m|đ)\d*(?!\w)|(dưới|tầm|khoảng|tối đa)\s*~?\d{3,}(?!\w)|(tc|tài chính|budget|ngân sách)\s*:?\s*~?\d+ | 3 | nêu ngân sách
+# --- Nhờ người khác bán / thanh lý cho mình: "có bác nào cần thanh lý không", "ai pass lại" ---
+re: (ai|bác nào|ae nào|anh em nào|người nào|có ai)(?!\w)[^.\n?]{0,25}(pass|bán|thanh lý|thanh lí|để lại|dư)(?!\w) | 4 | nhờ người khác bán cho mình
+re: (thanh lý|thanh lí|pass|bán|để lại)\s+(ko|không|k|hok|hông)\s+(các|ae|bác|ạ|anh|mọi)(?!\w) | 3 | hỏi có ai thanh lý không
+# --- Hỏi nên mua loại nào ---
+re: (mua|chọn|lấy)\s+(hãng|loại|con|màn|mẫu|bộ)\s+(nào|gì)(?!\w) | 3 | hỏi nên mua loại nào
+re: (màn|bộ|pc|con|loại|mẫu|case)\s+(nào|gì)(?!\w)[^.\n]{0,40}(ko|không|k|nhỉ|ạ|ae|\?) | 3 | hỏi màn / bộ nào
+# --- Yêu cầu của người mua: "ưu tiên người dùng pass lại", "ưu tiên còn bảo hành" ---
+re: (ưu tiên|yêu cầu)[^.\n]{0,30}(còn bảo hành|còn bh|người dùng|pass lại) | 3 | yêu cầu của người mua
+
+[BÁN]
+# --- Nói thẳng là bán / thanh lý / pass ---
+bán | 3
+cần bán | 2
+đăng bán | 2
+thanh lý | 3
+thanh lí | 3
+t.lý | 3
+pass | 3
+cần pass | 2
+ra đi | 3
+dư | 3
+thừa | 2
+bay | 2
+xả kho | 3
+xả | 2
+clear | 3
+kho | 2
+ai mua | 3
+# --- Shop / hàng số lượng ---
+sẵn | 3
+vừa về | 3
+nay em có | 3
+còn đúng | 3
+lẻ | 2
+chục | 2
+số lượng lớn | 3
+cung cấp | 3
+đại lý | 2
+# --- Giao hàng, bảo hành, tình trạng máy (người bán hay ghi) ---
+ship toàn quốc | 3
+có ship | 2
+ship cod | 2
+nhận trade | 3
+trade | 2
+thu màn | 2
+bảo hành | 2
+bh | 2
+bao test | 3
+fullbox | 2
+full box | 2
+có box | 2
+nobox | 2
+newbox | 2
+like new | 2
+keng | 2
+zin | 2
+không lỗi | 2
+ko lỗi | 2
+k lỗi | 2
+# --- Mời chào ---
+mời ae | 3
+mời ace | 3
+mời anh em | 3
+cho ae | 2
+cho ace | 2
+ai cần | 3
+bác nào cần | 3
+ai nhanh | 3
+nhanh tay | 3
+liên hệ | 2
+lh | 2
+hotline | 3
+zalo | 2
+giá chỉ | 3
+giá tốt | 2
+giá đẹp | 2
+giá thợ | 3
+đáng xuống tiền | 2
+có fix | 2
+fix | 1
+# --- Không dấu ---
+can ban | 3
+thanh ly | 3
+# --- Số điện thoại ---
+re: (?<!\d)0\d{2,3}[\s.\-]?\d{3}[\s.\-]?\d{3,4}(?!\d) | 3 | số điện thoại
+# --- Ghi giá bán: "Giá 1,2tr", "giá: 3tr5" ---
+re: giá\s*[:\-]?\s*\$?\s*\d | 3 | ghi giá bán
+# --- Còn bao nhiêu chiếc: "còn 3 con", "còn 10 màn", "50c" ---
+re: còn\s*\d+\s*(con|c|chiếc|cái|màn|em|bộ)(?!\w) | 3 | còn N chiếc
+re: (?<!\w)\d+\s*c(?!\w) | 2 | số chiếc (1c, 50c)
+# --- Có con số tiền (người bán hay ghi giá; người mua ghi ngân sách đã được cộng điểm bên MUA) ---
+#     (không tính "2K"/"4K" là tiền: đó là độ phân giải màn hình)
+re: \d+([.,]\d+)?\s*(tr|triệu|củ|m)\d*(?!\w)|\d{3,}\s*k(?!\w)|\d{1,3}([.,]\d{3})+\s*(đ|₫|vnđ|vnd)? | 1 | có số tiền
+# --- Quảng cáo đội lốt người mua: "Anh em đang tìm màn 165Hz… tham khảo chiếc này nhé" ---
+re: (ae|anh em|bác nào|các bác|ai)\s+(đang\s+)?(tìm|cần|muốn)[^\n]{0,60}(tham khảo|thì\s+(ib|inbox|liên hệ|lh))(?!\w) | 8 | quảng cáo "ai đang tìm… tham khảo"
+tham khảo chiếc này | 4
+tham khảo mẫu này | 4
+# --- Mời qua lấy: "bác nào qua lấy luôn thì cmt" ---
+re: (bác nào|ai|ae nào)\s+(qua|đến|tới)\s+lấy | 4 | mời qua lấy
+# --- Mở đầu bài bằng "bán / thanh lý / pass / dư…" ---
+re: ^\W*(#?bán|thanh l[ýí]|pass|xả|t\.?l[ýí]|cần bán|cần pass|cần ra đi|dư|em dư|mình dư)(?!\w) | 3 | mở đầu bằng bán / thanh lý

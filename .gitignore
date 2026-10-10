@@ -2,9 +2,22 @@
 .venv/
 venv/
 chrome_profile/
+chrome_profile_quet/
+chrome_profile_quet2/
 .env
 __pycache__/
 *.pyc
+.pytest_cache/
+
+# Bản sao lưu CSDL / file mẫu cũ (chứa SĐT, nhật ký) — không đưa lên git
+data/qc_facebook_backup_*.db
+*.bak
+
+# Dữ liệu chạy thật (kho GitHub công khai): CSDL có SĐT + bài viết của khách, nhật ký bình luận, ảnh chụp bài viết
+# của người khác — chỉ giữ trên máy chạy bot (bot tự tạo CSDL mới nếu chưa có)
+data/qc_facebook.db
+data/nhat_ky_binh_luan.xlsx
+data/screenshots/
 
 # Nhật ký chạy, file tạm
 logs/

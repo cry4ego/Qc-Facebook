@@ -14,6 +14,8 @@ from datetime import datetime
 import pandas as pd
 from selenium.webdriver.common.by import By
 
+from modules import fb_selectors as sel
+
 FOUND_COLUMNS = ["group_url", "group_name", "category", "region", "keywords", "privacy", "members", "activity",
                  "query", "found_at"]
 HANOI = re.compile(r"hà nội|ha noi|hanoi|\bhn\b", re.IGNORECASE)
@@ -54,7 +56,17 @@ def parse_count(text):
         return 0
     num = float(m.group(1).replace(".", "").replace(",", ".")) if m.group(2) else float(re.sub(r"[.,]", "", m.group(1)))
     unit = (m.group(2) or "").lower()
-    return int(num * (1000 if unit in ("k", "n") else 1_000_000 if unit in ("tr", "triệu", "m") else 1))
+    return round(num * (1000 if unit in ("k", "n") else 1_000_000 if unit in ("tr", "triệu", "m") else 1))
+
+
+def is_hanoi_group(group):
+    """Nhóm Hà Nội: cột khu vực = Hà Nội hoặc tên nhóm có "Hà Nội" / "HN" (khác: nhóm toàn quốc)"""
+    return group.get("region") == "Hà Nội" or bool(HANOI.search(group.get("group_name") or ""))
+
+
+def min_members(name, config):
+    """Số thành viên tối thiểu khi tìm nhóm mới: nhóm Hà Nội nhỏ vẫn đúng khách nên chỉ cần ít thành viên hơn"""
+    return config.GROUP_MIN_MEMBERS_HANOI if HANOI.search(name) else config.MIN_GROUP_MEMBERS
 
 
 def qualifies(name, config):
@@ -81,15 +93,15 @@ def load_found(path):
 
 def search_groups(driver, query, scrolls=4):
     """Kết quả tìm nhóm trên Facebook: [{url, name, privacy, members, activity}]"""
-    driver.get("https://www.facebook.com/search/groups/?q=" + urllib.parse.quote(query))
+    driver.get(sel.GROUP_SEARCH_URL.format(query=urllib.parse.quote(query)))
     time.sleep(random.uniform(6, 9))
     for _ in range(scrolls):
         driver.execute_script("window.scrollBy(0, 2000)")
         time.sleep(random.uniform(2, 3))
     results = []
-    for item in driver.find_elements(By.XPATH, "//div[@role='feed']/div"):
+    for item in driver.find_elements(By.XPATH, sel.XP_FEED_ITEMS):
         try:
-            links = [a for a in item.find_elements(By.XPATH, ".//a[contains(@href, '/groups/')]") if a.text.strip()]
+            links = [a for a in item.find_elements(By.XPATH, sel.XP_GROUP_LINKS) if a.text.strip()]
             lines = [l.strip() for l in item.text.split("\n") if l.strip()]
             if not links or len(lines) < 2:
                 continue
@@ -124,7 +136,7 @@ def find_groups(driver, config, logger, known_urls):
         for r in results:
             name = r["name"]
             hits = keyword_hits(name, config.GROUP_KEYWORDS)
-            if r["url"] in known or r["members"] < config.MIN_GROUP_MEMBERS or not qualifies(name, config):
+            if r["url"] in known or r["members"] < min_members(name, config) or not qualifies(name, config):
                 continue
             known.add(r["url"])
             activity = "" if "chưa đọc" in r["activity"] else r["activity"]  # nhóm đã tham gia hiện "… chưa đọc"

@@ -1,0 +1,218 @@
+# Khu vực của người cần mua — shop bán ở Hà Nội.
+# Bot BỎ QUA bài cần mua có nhắc khu vực trong mục [XA] mà KHÔNG nhắc khu vực nào trong mục [GẦN].
+# Bài không ghi khu vực nào: vẫn bình luận. Bài nhắc cả Hà Nội lẫn khu vực xa: vẫn bình luận.
+#
+# Cách sửa: mỗi dòng 1 tên (không phân biệt hoa thường, khớp nguyên từ: "huế" không khớp "huệ").
+# Muốn khớp cả kiểu gõ không dấu thì ghi thêm 1 dòng không dấu. Dòng 're: <biểu thức> | 1 | tên' là biểu thức chính quy.
+# Muốn bình luận cả khách ở 1 tỉnh: chuyển (hoặc xóa) dòng tỉnh đó khỏi mục [XA]. Sửa xong có hiệu lực ngay.
+# Dòng bắt đầu bằng # là chú thích.
+
+[GẦN]
+hà nội
+hà nôi
+ha noi
+hanoi
+hn
+hnoi
+# quận / huyện / khu vực Hà Nội hay gặp
+cầu giấy
+cau giay
+đống đa
+dong da
+ba đình
+hoàn kiếm
+hai bà trưng
+hoàng mai
+hoang mai
+thanh xuân
+thanh xuan
+long biên
+long bien
+tây hồ
+từ liêm
+tu liem
+hà đông
+ha dong
+gia lâm
+đông anh
+sóc sơn
+thanh trì
+hoài đức
+đan phượng
+mê linh
+thạch thất
+quốc oai
+chương mỹ
+thường tín
+sơn tây
+ba vì
+phúc thọ
+cầu diễn
+mỹ đình
+my dinh
+ngã tư sở
+linh đàm
+royal city
+times city
+# tỉnh lân cận (khoảng 100 km quanh Hà Nội)
+bắc ninh
+bac ninh
+từ sơn
+bắc giang
+hưng yên
+hung yen
+hải dương
+hai duong
+hải phòng
+hai phong
+hà nam
+phủ lý
+nam định
+nam dinh
+thái bình
+thai binh
+ninh bình
+ninh binh
+vĩnh phúc
+vinh phuc
+vĩnh yên
+phúc yên
+phú thọ
+việt trì
+thái nguyên
+thai nguyen
+hòa bình
+hoà bình
+miền bắc
+
+[XA]
+# TP.HCM (hcm, tphcm, tp.hcm, tp hcm) và các quận
+re: (?<!\w)(tp\.?\s*)?hcm(?!\w) | 1 | HCM
+hồ chí minh
+ho chi minh
+sài gòn
+sai gon
+saigon
+sg
+re: (?<!\w)(quận|q\.?)\s?(1[0-2]|[1-9])(?!\w) | 1 | quận số (TP.HCM)
+thủ đức
+thu duc
+gò vấp
+go vap
+bình thạnh
+binh thanh
+tân bình
+tan binh
+tân phú
+phú nhuận
+bình tân
+nhà bè
+hóc môn
+củ chi
+bình chánh
+# Đông Nam Bộ
+bình dương
+binh duong
+thủ dầu một
+dĩ an
+thuận an
+đồng nai
+dong nai
+biên hòa
+biên hoà
+bien hoa
+long thành
+nhơn trạch
+vũng tàu
+vung tau
+bà rịa
+tây ninh
+bình phước
+# miền Tây
+long an
+cần thơ
+can tho
+an giang
+kiên giang
+rạch giá
+phú quốc
+đồng tháp
+tiền giang
+mỹ tho
+bến tre
+vĩnh long
+trà vinh
+sóc trăng
+hậu giang
+bạc liêu
+cà mau
+# Nam Trung Bộ & Tây Nguyên
+lâm đồng
+đà lạt
+da lat
+khánh hòa
+khánh hoà
+nha trang
+cam ranh
+ninh thuận
+phan rang
+bình thuận
+phan thiết
+phú yên
+tuy hòa
+bình định
+quy nhơn
+quảng ngãi
+gia lai
+pleiku
+kon tum
+đắk lắk
+đăk lăk
+dak lak
+buôn ma thuột
+buôn mê thuột
+đắk nông
+# miền Trung
+đà nẵng
+đà nẳng
+da nang
+quảng nam
+hội an
+tam kỳ
+huế
+thừa thiên
+quảng trị
+quảng bình
+đồng hới
+hà tĩnh
+nghệ an
+tp vinh
+thành phố vinh
+thanh hóa
+thanh hoá
+thanh hoa
+# miền núi phía Bắc & Quảng Ninh (xa, đi lại khó)
+quảng ninh
+hạ long
+móng cái
+cẩm phả
+uông bí
+lạng sơn
+cao bằng
+bắc kạn
+bắc cạn
+hà giang
+tuyên quang
+lào cai
+sa pa
+sapa
+yên bái
+điện biên
+lai châu
+sơn la
+# cả vùng
+miền nam
+trong nam
+miền trung
+miền tây
+tây nguyên

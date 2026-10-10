@@ -4,17 +4,26 @@ import time
 import random
 import logging
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import TimeoutException
 
 logger = logging.getLogger(__name__)
 
-# Ô "Bạn viết gì đi..." ở đầu nhóm (chữ có thể đổi theo thời gian -> thêm vào đây)
-COMPOSER_TEXTS = ["Bạn viết gì đi", "Viết gì đó", "Write something", "What's on your mind"]
-XP_JOIN_BTN = ("//div[@role='main']//div[@role='button'][@aria-label='Tham gia nhóm' or @aria-label='Join group'"
-               " or .//span[text()='Tham gia nhóm' or text()='Join group']]")
-# Cửa sổ "Tạo bài viết": nhận theo nội dung (có ô soạn + nút Đăng), vì phần mang nhãn "Tạo bài viết" chỉ là thanh tiêu đề
-XP_DIALOG = ("//div[@role='dialog'][.//div[@role='textbox' and @contenteditable='true']]"
-             "[.//div[@role='button'][@aria-label='Đăng' or @aria-label='Post']]")
+# Selector Facebook (ô "Bạn viết gì đi…", cửa sổ Tạo bài viết, nút Đăng) nằm trong modules/fb_selectors.py
+from modules import fb_selectors as sel
+from modules import group_checker as gc
+from modules.fb_selectors import COMPOSER_TEXTS, XP_JOIN_BTN, XP_POST_DIALOG as XP_DIALOG
+
+# Nhóm KHÔNG đăng được vì lý do của nhóm (không phải lỗi giao diện): không tính vào "hỏng 3 nhóm liên tiếp",
+# không chờ MIN_DELAY..MAX_DELAY, và ... giờ sau mới thử đăng lại vào nhóm đó (SKIP_HOURS)
+NOT_JOINED_NOTE = "chưa tham gia nhóm"
+UNAVAILABLE_NOTE = "không xem được nhóm (Facebook báo 'không xem được nội dung này' — có thể đã bị chặn khỏi nhóm)"
+PENDING_LIMIT_NOTE = "nhóm đang giữ quá nhiều bài/bình luận chờ duyệt của bạn — Facebook ẩn ô viết bài"
+SELL_ONLY_NOTE = "nhóm chỉ cho đăng tin bán ('Bán gì đó'), không có ô 'Bạn viết gì đi'"
+SKIP_HOURS = {PENDING_LIMIT_NOTE: 24, SELL_ONLY_NOTE: 30 * 24}
+GROUP_NOTES = (NOT_JOINED_NOTE, UNAVAILABLE_NOTE, PENDING_LIMIT_NOTE, SELL_ONLY_NOTE)
+POST_WAIT_SECONDS = 45  # chờ cửa sổ đăng bài đóng lại sau khi bấm Đăng (có ảnh thì tải lên lâu hơn)
 
 
 def _norm(s):
@@ -41,6 +50,51 @@ class FacebookPoster:
             time.sleep(0.5)
         raise TimeoutException(xpath)
 
+    def _visible_els(self, xpath):
+        return [e for e in self.driver.find_elements(By.XPATH, xpath) if e.is_displayed()]
+
+    def _group_problem(self):
+        """Vì sao trang nhóm không có ô 'Bạn viết gì đi' (None = không rõ, có thể Facebook đổi giao diện)"""
+        if gc.is_unavailable(self.driver):
+            return UNAVAILABLE_NOTE
+        if gc.page_has(self.driver, sel.PENDING_LIMIT_PHRASES):
+            return PENDING_LIMIT_NOTE
+        if self._visible_els(sel.XP_SELL_ONLY_BUTTON):
+            return SELL_ONLY_NOTE
+        return None
+
+    def _notice(self):
+        """Chữ trong thông báo / cửa sổ đang hiện (trừ cửa sổ soạn bài) — lý do Facebook không cho đăng"""
+        texts = []
+        for e in self.driver.find_elements(By.XPATH, sel.XP_NOTICE_TEXTS):
+            try:
+                if e.is_displayed() and e.text.strip():
+                    texts.append(_norm(e.text))
+            except Exception:
+                continue
+        return " | ".join(texts)[:300]
+
+    def _screenshot(self, name):
+        try:
+            os.makedirs(self.config.SCREENSHOT_DIR, exist_ok=True)
+            path = os.path.join(self.config.SCREENSHOT_DIR, f"{name}_{time.strftime('%Y%m%d_%H%M%S')}.png")
+            self.driver.save_screenshot(path)
+            return path
+        except Exception:
+            return None
+
+    def close_composer(self):
+        """Đóng cửa sổ Tạo bài viết còn mở (bỏ bản nháp) để nhóm sau bắt đầu sạch"""
+        try:
+            ActionChains(self.driver).send_keys(Keys.ESCAPE).perform()
+            time.sleep(1.5)
+            for text in sel.DISCARD_TEXTS:
+                for btn in self._visible_els("//div[@role='dialog']" + sel.xp_button(text)[1:]):
+                    self.driver.execute_script("arguments[0].click();", btn)
+                    time.sleep(1)
+        except Exception:
+            pass  # chỉ là dọn dẹp: trang nhóm sau vẫn được mở lại từ đầu
+
     def post_to_group(self, group_url, content, image_path=None, submit=True):
         """Đăng bài vào 1 nhóm. Trả về (thành công?, ghi chú)"""
         step = "mở nhóm"
@@ -49,16 +103,21 @@ class FacebookPoster:
             time.sleep(random.uniform(5, 8))
 
             if [e for e in self.driver.find_elements(By.XPATH, XP_JOIN_BTN) if e.is_displayed()]:
-                return False, "chưa tham gia nhóm"
+                return False, NOT_JOINED_NOTE
 
             step = "tìm ô 'Bạn viết gì đi...'"
-            cond = " or ".join(f"contains(text(), \"{t}\")" for t in COMPOSER_TEXTS)
-            box = self._wait_visible(f"//div[@role='main']//div[@role='button'][.//span[{cond}]]", 15)
+            try:
+                box = self._wait_visible(sel.xp_composer_button(), 15)
+            except TimeoutException:
+                problem = self._group_problem()
+                if problem:
+                    return False, problem
+                raise
             self.driver.execute_script("arguments[0].click();", box)
 
             step = "mở cửa sổ 'Tạo bài viết'"
             dialog = self._wait_visible(XP_DIALOG, 15)
-            editor = self._wait_visible(XP_DIALOG + "//div[@role='textbox' and @contenteditable='true']", 10)
+            editor = self._wait_visible(sel.XP_POST_DIALOG_EDITOR, 10)
             self.driver.execute_script("arguments[0].focus();", editor)
             editor.click()
             time.sleep(1)
@@ -78,7 +137,7 @@ class FacebookPoster:
             note = ""
             if image_path and os.path.exists(image_path):
                 step = "gắn ảnh"
-                inputs = dialog.find_elements(By.XPATH, ".//input[@type='file' and contains(@accept, 'image')]")
+                inputs = dialog.find_elements(By.XPATH, sel.XP_DIALOG_IMAGE_INPUT)
                 if inputs:
                     inputs[0].send_keys(os.path.abspath(image_path))
                     time.sleep(random.uniform(5, 7))  # chờ ảnh upload
@@ -86,14 +145,13 @@ class FacebookPoster:
                     note = "không tìm thấy nút gắn ảnh — đăng không ảnh"
 
             step = "bấm 'Đăng'"
-            btn = self._wait_visible(XP_DIALOG + "//div[@role='button'][@aria-label='Đăng' or @aria-label='Post']"
-                                     "[not(@aria-disabled='true')]", 20)
+            btn = self._wait_visible(sel.XP_POST_DIALOG_SUBMIT, 20)
             if not submit:
                 return True, "chế độ thử: đã soạn xong, KHÔNG đăng"
             self.driver.execute_script("arguments[0].click();", btn)
 
             step = "chờ đăng xong"
-            end = time.time() + 30
+            end = time.time() + POST_WAIT_SECONDS
             while time.time() < end:
                 time.sleep(1)
                 if not [e for e in self.driver.find_elements(By.XPATH, XP_DIALOG) if e.is_displayed()]:
@@ -101,15 +159,23 @@ class FacebookPoster:
                     if "chờ phê duyệt" in page or "pending" in page:
                         note = "; ".join(x for x in (note, "bài đang chờ quản trị viên duyệt") if x)
                     return True, note
-            return False, "bấm Đăng nhưng cửa sổ không đóng (chưa đăng được)"
+            # Cửa sổ không đóng: ghi lại Facebook báo gì + chụp màn hình để biết nguyên nhân
+            notice = self._notice()
+            if any(p in notice.lower() for p in sel.PENDING_LIMIT_PHRASES):
+                return False, PENDING_LIMIT_NOTE
+            shot = self._screenshot("dang_bai_loi")
+            return False, ("bấm Đăng nhưng cửa sổ không đóng (chưa đăng được)"
+                           + (f" — Facebook báo: {notice}" if notice else " — không có thông báo nào")
+                           + (f" — ảnh chụp: {os.path.basename(shot)}" if shot else ""))
 
         except TimeoutException:
             return False, f"hết thời gian chờ ở bước: {step} (Facebook có thể đã đổi giao diện)"
         except Exception as e:
             return False, f"lỗi ở bước {step}: {str(e).splitlines()[0][:150]}"
 
-    def post_batch(self, groups, content, image_path=None):
-        """Đăng lần lượt vào tối đa MAX_POSTS_PER_DAY nhóm. Hỏng 3 nhóm liên tiếp (không tính nhóm chưa tham gia) thì dừng"""
+    def post_batch(self, groups, content, image_path=None, on_result=None):
+        """Đăng lần lượt vào tối đa MAX_POSTS_PER_DAY nhóm. Hỏng 3 nhóm liên tiếp (không tính nhóm chưa tham gia) thì dừng.
+        on_result(nhóm, thành công?, ghi chú): gọi sau mỗi nhóm (vd ghi nhớ nhóm chưa tham gia)"""
         results = []
         fails = 0
         for group in groups:
@@ -120,8 +186,12 @@ class FacebookPoster:
             ok, note = self.post_to_group(url, content, image_path)
             logger.info(f"  {'✓ Đã đăng' if ok else '✗ Không đăng được'}: {group.get('group_name') or url}"
                         + (f" — {note}" if note else ""))
-            if note == "chưa tham gia nhóm":
-                continue  # không tính vào số nhóm đã thử, không cần chờ
+            if on_result:
+                on_result(group, ok, note)
+            if note in GROUP_NOTES:
+                continue  # lý do của nhóm (chưa tham gia, chỉ đăng tin bán…): không tính là hỏng, không cần chờ
+            if not ok:
+                self.close_composer()  # bỏ bản nháp còn mở, nhóm sau bắt đầu sạch
             results.append({"group": url, "success": ok})
             fails = 0 if ok else fails + 1
             if fails >= 3:
