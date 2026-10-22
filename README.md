@@ -219,7 +219,11 @@ mỗi 4 giây. Không cần mở 2 cửa sổ đen nữa — để chúng thu nh
 
 ### Sản phẩm & nội dung bình luận — web, tab **Sản phẩm**
 
-Mỗi sản phẩm **đang bật** = 1 bình luận kèm ảnh riêng vào mỗi bài viết (3 sản phẩm bật → mỗi bài 3 bình luận).
+Mỗi bài viết nhận `COMMENT_PRODUCTS_PER_POST` (5) bình luận riêng lẻ: 5 sản phẩm **đang bật**, mỗi sản phẩm 1 mẫu bình luận kèm ảnh (0 = mọi sản phẩm đang bật).
+
+**Nội dung bán hàng 20/10 (5 mẫu màn × 30 bình luận + 10 bài đăng)** nằm ở `data/noi_dung/` (cau-hinh.json, binh-luan/, bai-dang/ — định dạng của thư mục `Ảnh Màn-20-10`). Sửa nội dung ở thư mục nguồn rồi chạy
+`python main.py noidung "<thư mục nguồn>"`: chép chữ + ảnh vào `data/`, nạp lại bình luận (mẫu cũ tự tắt). Bài đăng và cả 2 bản bình luận (đầy đủ / chỉ tên người bán) đều dùng **ảnh bán hàng** (`Anh-ban-hang`) của mẫu đó.
+
 Trên web bấm **＋ Thêm sản phẩm** hoặc **Sửa**:
 
 | Ô | Ý nghĩa |
@@ -304,6 +308,7 @@ Web chỉ mở được trên máy này (127.0.0.1), máy khác trong mạng kh�
 |---|---|---|---|
 | 08:00 | MSI G2712F 27" FHD 180Hz — 1.600.000đ... | MSI_G2712F_FHD_180Hz_Gia_1600000d.jpg | |
 
+- `content` = `@xoay`: mỗi ngày xoay vòng 5 mẫu màn (2 khung giờ cùng ngày khác mẫu); `@<mã>` (vd `@g274qpx`) = luôn mẫu đó. Mỗi nhóm nhận 1 bài khác nhau trong 10 bài của mẫu (data/noi_dung/bai-dang), ảnh = ảnh bán hàng của mẫu
 - `time`: giờ đăng `HH:MM`. Nếu đúng giờ đó máy đang bận quét nhóm, bài được đăng bù trong vòng 60 phút
 - `group_category`: `Màn hình` / `PC`. Để trống thì đăng vào mọi nhóm thuộc `TARGET_REGION`
 - Mỗi nhóm nhận tối đa 1 bài/ngày
@@ -345,6 +350,7 @@ Web chỉ mở được trên máy này (127.0.0.1), máy khác trong mạng kh�
 | `PARALLEL` / `SCAN_WINDOWS` | `True` / 2 | Chạy song song 2 cửa sổ QUÉT + 1 cửa sổ BÌNH LUẬN (cần `chrome_profile_quet/`, `chrome_profile_quet2/` — lệnh `taophienquet`) |
 | `HOT_RESCAN_MINUTES` / `SCAN_ACTIVE_MINUTES` | 2 / 5 | Quét lại nhóm tương tác cao / nhóm có khách hoặc ≥ `SCAN_ACTIVE_POSTS_PER_DAY` (100) bài/ngày mỗi ... phút |
 | `SCAN_OVERLAP_MINUTES` | 10 | Quét lại chỉ xét bài đăng sau lần quét trước + ... phút |
+| `SCAN_MIN_WINDOW_MINUTES` | 120 | ... nhưng luôn xét bài trong ít nhất ... phút: bài ẩn danh / nhóm duyệt bài hiện lên bảng tin muộn với giờ đăng gốc |
 | `QUEUE_IDLE_SECONDS` / `QUEUE_HOUSEKEEP_MINUTES` | 15 / 30 | Hàng chờ trống: ... giây xem lại; ... phút 1 lần tham gia nhóm + kiểm tra lại bài cũ |
 | `GROUP_RESCAN_MINUTES` | 60 | Nhóm thường quét xong thì ... phút sau mới quét lại (nhường lượt cho nhóm khác) |
 | `YIELD_DAYS` / `LOW_YIELD_MIN_SCANS` / `LOW_YIELD_RESCAN_HOURS` | 7 / 3 / 24 | Nhóm quét ≥ 3 lần trong 7 ngày mà 0 bài cần mua = ít khách, 24 giờ quét 1 lần |

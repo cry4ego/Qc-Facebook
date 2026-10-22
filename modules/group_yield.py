@@ -9,7 +9,7 @@ Chọn nhóm để quét theo số bài cần mua tìm được + mức hoạt �
   scan_interval : bao lâu quét lại 1 nhóm (cửa sổ QUÉT): nhóm tương tác cao 3 phút, nhóm có khách / đông bài 10 phút,
                   nhóm thường 60 phút, nhóm ít khách 24 giờ
   next_group    : nhóm cửa sổ QUÉT nên quét ngay (tới lượt + trễ hạn nhiều × điểm cao)
-  scan_window   : chỉ xét bài đăng sau lần quét trước (+ SCAN_OVERLAP_MINUTES) -> quét lại rất nhanh
+  scan_window   : chỉ xét bài đăng sau lần quét trước (+ SCAN_OVERLAP_MINUTES), ít nhất SCAN_MIN_WINDOW_MINUTES (bài duyệt muộn)
   posting_order : thứ tự đăng bài bán — nhóm có nhiều bài cần mua trước (khách đang tìm ở đó), rồi nhóm màn hình
 """
 import random
@@ -119,11 +119,12 @@ def next_group(groups, stats, yields, config, last_try=None, now=None):
 
 
 def scan_window(y, config, now=None):
-    """Chỉ xét bài đăng trong ... phút: từ lần quét trước (+ dự phòng); nhóm chưa quét -> MAX_POST_AGE_MINUTES"""
+    """Chỉ xét bài đăng trong ... phút: từ lần quét trước (+ dự phòng), ít nhất SCAN_MIN_WINDOW_MINUTES để bắt bài được
+    quản trị viên duyệt muộn (hiện lên với giờ đăng gốc); nhóm chưa quét -> MAX_POST_AGE_MINUTES"""
     if not y["last_scan"]:
         return config.MAX_POST_AGE_MINUTES
     since = _minutes_since(y["last_scan"], now or datetime.now()) + config.SCAN_OVERLAP_MINUTES
-    return int(min(config.MAX_POST_AGE_MINUTES, max(15, since)))
+    return int(min(config.MAX_POST_AGE_MINUTES, max(config.SCAN_MIN_WINDOW_MINUTES, since)))
 
 
 def posting_order(groups, yields, shuffle=random.shuffle):

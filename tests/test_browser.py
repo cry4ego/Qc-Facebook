@@ -1,7 +1,7 @@
 """Chrome profile: cửa sổ bình luận và cửa sổ quét không tắt nhầm Chrome của nhau; chép phiên đăng nhập bỏ bộ nhớ đệm."""
 import os
 
-from modules.browser import copy_profile, is_profile_process
+from modules.browser import copy_profile, is_browser_dead, is_profile_process
 
 
 def test_profile_match_is_exact(tmp_path):
@@ -26,3 +26,12 @@ def test_copy_profile_keeps_login_but_skips_cache_and_locks(tmp_path):
     assert not (dst / "Default" / "Cache").exists() and not (dst / "SingletonLock").exists()
     assert not (dst / "old").exists()
     assert os.path.isdir(dst / "Default")
+
+
+def test_dead_browser_errors_are_recognised():
+    from selenium.common.exceptions import InvalidSessionIdException, WebDriverException
+    assert is_browser_dead(InvalidSessionIdException("invalid session id"))
+    assert is_browser_dead(WebDriverException("disconnected: not connected to DevTools"))
+    assert is_browser_dead(WebDriverException("chrome not reachable"))
+    assert not is_browser_dead(WebDriverException("element click intercepted"))
+    assert not is_browser_dead(ValueError("x"))

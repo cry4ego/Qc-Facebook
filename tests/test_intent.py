@@ -67,6 +67,15 @@ def test_real_false_positives_are_not_buy(text, rules):
     assert classify_intent(text, rules).label != BUY
 
 
+@pytest.mark.parametrize("text", [
+    # bài thật bị sót 10/10/2026 (từ khóa chấm mua 0 / bán 1,5 — chỉ nhờ Gemini mới nhận ra là MUA)
+    "Họp chợ màn Văn phòng 2- 3tr.Em cần 2 chiếc tại HN",
+    "Em cần 3 con màn 24 inch cho phòng làm việc",
+])
+def test_real_buy_posts_missed_by_keywords_are_buy(text, rules):
+    assert classify_intent(text, rules).label == BUY
+
+
 def test_result_explains_matched_keywords(rules):
     r = classify_intent("Cần mua màn 27 inch tầm 2tr", rules)
     assert r.label == BUY

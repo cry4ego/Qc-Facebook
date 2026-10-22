@@ -1,8 +1,10 @@
 """Chạy song song: cửa sổ QUÉT đưa bài vào hàng chờ, cửa sổ BÌNH LUẬN lấy bài MỚI NHẤT ra bình luận ngay.
 Trình duyệt giả + đồng hồ giả: không mở Chrome, không chờ thật."""
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+from selenium.common.exceptions import InvalidSessionIdException
 
 from modules import group_checker as gc
 from modules.db import Q_DONE, Q_EXPIRED, Q_RUNNING, Q_SKIPPED, Q_WAITING, Database
@@ -19,7 +21,7 @@ def cfg(tmp_path, **over):
                 MAX_COMMENTED_POSTS_PER_DAY=40, COMMENT_LOG_FILE=str(tmp_path / "nhat_ky.xlsx"), YIELD_DAYS=7,
                 GROUP_RESCAN_MINUTES=60, LOW_YIELD_MIN_SCANS=3, LOW_YIELD_RESCAN_HOURS=24, LOW_YIELD_OBSERVE_HOURS=24,
                 HOT_RESCAN_MINUTES=3, SCAN_ACTIVE_MINUTES=10, SCAN_ACTIVE_POSTS_PER_DAY=100, SCAN_OVERLAP_MINUTES=10,
-                SCAN_PAUSE_SECONDS=(0, 0))
+                SCAN_MIN_WINDOW_MINUTES=120, SCAN_PAUSE_SECONDS=(0, 0))
     return SimpleNamespace(**{**base, **over})
 
 
@@ -109,6 +111,18 @@ def test_failed_post_without_any_comment_is_retried_once(env):
     assert status(env.db, 1) == Q_WAITING   # trả lại hàng chờ
     env.runner.comment_next()
     assert status(env.db, 1) == Q_SKIPPED and len(env.watcher.commented) == 2   # thất bại lần 2: thôi
+
+
+def test_dead_chrome_puts_post_back_and_asks_for_a_new_chrome(env):
+    # 19/10: Chrome tự cập nhật lúc 09:40 -> "invalid session id"; cửa sổ bình luận cứ báo lỗi từng bài mà không mở
+    # lại Chrome. Nay: bài trả lại hàng chờ, lỗi được ném ra để vòng ngoài (main.run_queue_scheduler) mở lại Chrome
+    def dead(*a):
+        raise InvalidSessionIdException("invalid session id: session deleted as the browser has closed the connection")
+    env.watcher.comment_post = dead
+    env.db.enqueue_post(GROUP, "Màn hình", post(1, 5), 1.0)
+    with pytest.raises(InvalidSessionIdException):
+        env.runner.comment_next()
+    assert status(env.db, 1) == Q_WAITING
 
 
 def test_failed_post_with_a_comment_sent_is_not_retried(env):
@@ -222,6 +236,16 @@ def test_scanner_puts_new_posts_in_queue(tmp_path):
     assert s.watcher.windows == [360]                         # nhóm chưa quét lần nào: xét bài trong 6 giờ
     assert db.next_queued(360)["post_url"].endswith("/posts/1/")
     assert any("2 bài mới vào hàng chờ" in m for m in logs)
+
+
+def test_rescan_still_catches_posts_approved_late_by_admins(tmp_path):
+    # bài ẩn danh / nhóm duyệt bài: hiện lên bảng tin muộn với giờ đăng gốc (vd đã 17 phút) -> vẫn phải được xét
+    db = Database(str(tmp_path / "t.db"))
+    five_min_ago = (datetime.now() - timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+    db.execute("INSERT INTO group_scans (group_url, scanned_at, found) VALUES (?, ?, 0)", (GROUP, five_min_ago))
+    s, _, _ = scanner(tmp_path, db, [("ok", [post(1, 40)])])
+    assert s.step() == 1
+    assert s.watcher.windows == [120]                         # quét 5 phút trước nhưng vẫn xét bài trong 2 giờ
 
 
 def test_scanner_waits_for_next_turn_after_skipping_a_group(tmp_path):

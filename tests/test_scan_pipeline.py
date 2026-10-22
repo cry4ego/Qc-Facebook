@@ -288,5 +288,18 @@ def test_check_and_scan_reports_not_joined_group_for_the_comment_window(env):
     assert env.db.groups_with_status(w.gc.NOT_JOINED)[0]["group_url"] == GROUP["group_url"]
 
 
+def test_dead_chrome_while_commenting_is_raised_and_post_not_marked_commented(env):
+    from selenium.common.exceptions import InvalidSessionIdException
+
+    class DeadCommenter:
+        def open_post(self, url):
+            raise InvalidSessionIdException("invalid session id: session deleted as the browser has closed the connection")
+    gw, _ = env.make()
+    url = "https://www.facebook.com/groups/testgroup/posts/1/"
+    with pytest.raises(InvalidSessionIdException):
+        gw.comment_post(DeadCommenter(), POOL, GROUP, {"url": url, "text": "Cần tìm màn", "age": 5})
+    assert not env.db.has_post(url)          # Chrome mở lại xong vẫn bình luận được bài này
+
+
 def test_text_key_ignores_post_age():
     assert w.text_key("Người A\n5 phút\nCần tìm màn") == w.text_key("Người A\n2 giờ\nCần tìm màn")

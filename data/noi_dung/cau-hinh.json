@@ -1,0 +1,89 @@
+{
+  "_ghi_chu": "Thông tin dùng chung cho mọi bình luận và bài đăng. Sửa ở đây rồi chạy: python tao-tai-lieu.py. anh = ảnh bán hàng (có giá, SĐT, địa chỉ) dùng cho file 1, 3, 4A. anh_goc = ảnh gốc MSI (không có liên hệ) dùng xoay vòng cho bình luận file 2 / 4B.",
+
+  "cong_ty": "ASL Workshop",
+  "nguoi_ban": "Hoàng Văn Dũng",
+  "sdt": "0902 189 751",
+  "zalo": "0902 189 751",
+  "dia_chi": "64 Cầu Diễn, Hà Nội",
+  "bao_hanh": "tháng đầu lỗi 1 đổi 1",
+  "tinh_trang": "Hàng công ty đã qua sử dụng",
+
+  "ket_bl_day_du": [
+    "SĐT/Zalo: {sdt} – {nguoi_ban} · Địa chỉ: {dia_chi}",
+    "Liên hệ {nguoi_ban}: {sdt} (gọi hoặc Zalo) – địa chỉ {dia_chi}.",
+    "SĐT: {sdt} (Zalo cùng số) · Người bán: {nguoi_ban} · {cong_ty}, {dia_chi}",
+    "Gọi/Zalo {sdt} ({nguoi_ban}) – qua {dia_chi} xem trực tiếp.",
+    "{cong_ty} – {dia_chi} · Gọi/Zalo: {sdt} · Người bán: {nguoi_ban}",
+    "Cần hỏi nhanh: {sdt} (Zalo) – {nguoi_ban}. Xem máy tại {dia_chi}.",
+    "{cong_ty}, {dia_chi} | SĐT: {sdt} (gọi/Zalo) | {nguoi_ban}",
+    "Inbox hoặc gọi/Zalo {sdt} – {nguoi_ban}, {cong_ty} ({dia_chi})."
+  ],
+
+  "ket_bl_chi_ten": [
+    "— {nguoi_ban}",
+    "Người bán: {nguoi_ban}",
+    "Inbox {nguoi_ban} để được tư vấn thêm.",
+    "{nguoi_ban} – cần hỏi gì cứ nhắn tin.",
+    "Ký tên: {nguoi_ban}",
+    "Cần tư vấn cứ nhắn {nguoi_ban} nhé."
+  ],
+
+  "san_pham": [
+    {
+      "ma": "g274qpx",
+      "ten": "MSI G274QPX",
+      "tom_tat": "27\" 2K · Rapid IPS · 240Hz · 1ms · HDR 400 · USB-C sạc 65W",
+      "anh": "Anh-ban-hang/MSI-G274QPX-ASL-Workshop.png",
+      "anh_goc": ["assets/g274qpx/img1.png", "assets/g274qpx/img3.png", "assets/g274qpx/img4.png", "assets/g274qpx/img2.png"],
+      "gia": "2.750.000đ",
+      "gia_co_chan": "2.900.000đ",
+      "phu_thu_chan": "150k",
+      "nguon": ["https://www.msi.com/Monitor/G274QPX/Specification", "https://www.msi.com/Monitor/G274QPX"]
+    },
+    {
+      "ma": "g274qpf-e2",
+      "ten": "MSI G274QPF E2",
+      "tom_tat": "27\" 2K · Rapid IPS · 180Hz · 1ms · HDR 400 · USB-C",
+      "anh": "Anh-ban-hang/MSI-G274QPF-E2-ASL-Workshop.png",
+      "anh_goc": ["assets/g274qpf-e2/img3.png", "assets/g274qpf-e2/img1.png", "assets/g274qpf-e2/img2.png"],
+      "gia": "2.500.000đ",
+      "gia_co_chan": "2.650.000đ",
+      "phu_thu_chan": "150k",
+      "nguon": ["https://www.msi.com/Monitor/G274QPF-E2/Specification", "https://www.msi.com/Monitor/G274QPF-E2"]
+    },
+    {
+      "ma": "g274qrfw",
+      "ten": "MSI G274QRFW",
+      "tom_tat": "27\" 2K · Rapid IPS · 170Hz · 1ms · màu trắng · RGB",
+      "anh": "Anh-ban-hang/MSI-G274QRFW-ASL-Workshop.png",
+      "anh_goc": ["assets/g274qrfw/img2.png", "assets/g274qrfw/img3.png", "assets/g274qrfw/img1.png", "assets/g274qrfw/img4.png"],
+      "gia": "2.500.000đ",
+      "gia_co_chan": null,
+      "phu_thu_chan": null,
+      "nguon": ["https://www.msi.com/Monitor/G274QRFW/Specification", "https://us.msi.com/Monitor/G274QRFW"]
+    },
+    {
+      "ma": "g272qpf-e2",
+      "ten": "MSI G272QPF E2",
+      "tom_tat": "27\" 2K · Rapid IPS · 180Hz · 1ms · tương phản 1200:1",
+      "anh": "Anh-ban-hang/MSI-G272QPF-E2-ASL-Workshop.png",
+      "anh_goc": ["assets/g272qpf-e2/img4.png", "assets/g272qpf-e2/img3.png", "assets/g272qpf-e2/img1.png", "assets/g272qpf-e2/img2.png"],
+      "gia": "2.400.000đ",
+      "gia_co_chan": "2.550.000đ",
+      "phu_thu_chan": "150k",
+      "nguon": ["https://www.msi.com/Monitor/G272QPF-E2/Specification", "https://www.msi.com/Monitor/G272QPF-E2"]
+    },
+    {
+      "ma": "mp273qp",
+      "ten": "MSI PRO MP273QP",
+      "tom_tat": "27\" 2K · IPS · 75Hz · loa 2×2W · bảo vệ mắt TÜV",
+      "anh": "Anh-ban-hang/MSI-PRO-MP273QP-ASL-Workshop.png",
+      "anh_goc": ["assets/mp273qp/img2.png", "assets/mp273qp/img1.png", "assets/mp273qp/img3.png", "assets/mp273qp/img4.png"],
+      "gia": "1.950.000đ",
+      "gia_co_chan": null,
+      "phu_thu_chan": null,
+      "nguon": ["https://www.msi.com/Business-Productivity-Monitor/PRO-MP273QP/Specification", "https://www.msi.com/Business-Productivity-Monitor/PRO-MP273QP"]
+    }
+  ]
+}

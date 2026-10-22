@@ -8,7 +8,8 @@ from modules.group_yield import (group_score, next_group, posting_order, rank_by
 
 CFG = SimpleNamespace(GROUP_RESCAN_MINUTES=120, LOW_YIELD_MIN_SCANS=3, LOW_YIELD_RESCAN_HOURS=24,
                       LOW_YIELD_OBSERVE_HOURS=24, HOT_RESCAN_MINUTES=3, SCAN_ACTIVE_MINUTES=10,
-                      SCAN_ACTIVE_POSTS_PER_DAY=100, SCAN_OVERLAP_MINUTES=10, MAX_POST_AGE_MINUTES=360)
+                      SCAN_ACTIVE_POSTS_PER_DAY=100, SCAN_OVERLAP_MINUTES=10, SCAN_MIN_WINDOW_MINUTES=120,
+                      MAX_POST_AGE_MINUTES=360)
 NOW = datetime(2026, 10, 8, 12, 0)
 FMT = "%Y-%m-%d %H:%M:%S"
 
@@ -92,10 +93,13 @@ def test_next_group_respects_recent_failed_attempts():
     assert next_group([group("a")], {}, {}, CFG, now=NOW)["group_name"] == "a"
 
 
-def test_scan_window_only_covers_posts_since_last_scan():
+def test_scan_window_covers_posts_since_last_scan_and_late_approved_posts():
     assert scan_window(stats(), CFG, NOW) == 360                          # chưa quét lần nào: 6 giờ
-    assert scan_window(stats(scans=1, hours_ago=0.05), CFG, NOW) == 15    # quét 3 phút trước: tối thiểu 15 phút
-    assert scan_window(stats(scans=1, hours_ago=1), CFG, NOW) == 70       # 60 phút + 10 phút dự phòng
+    # 10/10: bài ẩn danh "Họp chợ màn văn phòng… cần 2 chiếc tại HN" được duyệt muộn, hiện lên khi đã 17+ phút
+    # -> khung 15 phút bỏ sót. Luôn xét ít nhất SCAN_MIN_WINDOW_MINUTES để bắt bài chờ quản trị viên duyệt
+    assert scan_window(stats(scans=1, hours_ago=0.05), CFG, NOW) == 120   # quét 3 phút trước: vẫn xét bài ≤ 2 giờ
+    assert scan_window(stats(scans=1, hours_ago=1), CFG, NOW) == 120
+    assert scan_window(stats(scans=1, hours_ago=3), CFG, NOW) == 190      # 180 phút + 10 phút dự phòng
     assert scan_window(stats(scans=1, hours_ago=30), CFG, NOW) == 360
 
 

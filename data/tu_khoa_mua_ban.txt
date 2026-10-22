@@ -35,6 +35,10 @@ tìm màn | 3
 kiếm màn | 3
 cần màn | 3
 cần 1 | 2
+# "Em cần 2 chiếc", "cần 3 con màn" (bài thật bị sót 10/10)
+re: \bcần\s+\d+\s*(chiếc|con|cái|màn)\b | 3 | cần mua số lượng
+# "Họp chợ màn văn phòng" = gọi người bán vào chào hàng
+họp chợ | 3
 cần pc | 3
 cần gấp | 2
 lấy luôn | 2

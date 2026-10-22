@@ -64,6 +64,18 @@ def test_group_reasons_do_not_count_as_failures(monkeypatch):
     assert len(calls) == 5 and closed == 0
 
 
+def test_each_group_can_get_its_own_post_text(monkeypatch):
+    # 20/10: 10 bài khác nhau mỗi mẫu màn — nhóm thứ i nhận bài thứ i (không đăng trùng nội dung giữa các nhóm)
+    monkeypatch.setattr(p.time, "sleep", lambda s: None)
+    poster = p.FacebookPoster(PageDriver(), CFG)
+    sent = []
+    poster.post_to_group = lambda url, content, image=None: (sent.append(content), (True, ""))[1]
+    poster._human_delay = lambda: None
+    groups = [{"group_url": f"https://www.facebook.com/groups/g{i}/"} for i in range(3)]
+    poster.post_batch(groups, lambda i: f"bài {i}")
+    assert sent == ["bài 0", "bài 1", "bài 2"]
+
+
 def test_real_failures_stop_after_three_and_clean_up(monkeypatch):
     fail = (False, "bấm Đăng nhưng cửa sổ không đóng (chưa đăng được)")
     results, calls, closed = batch(monkeypatch, [fail, fail, fail, (True, "")])

@@ -14,6 +14,16 @@ COPY_IGNORE = shutil.ignore_patterns("Cache", "Code Cache", "GPUCache", "DawnCac
                                      "Crashpad", "Singleton*", "lockfile", "*.tmp", "BrowserMetrics*")
 
 
+# Chrome đã chết / mất kết nối (vd Chrome tự cập nhật, bị tắt): phải mở Chrome mới, thử tiếp chỉ lỗi mãi
+DEAD_BROWSER_ERRORS = ("invalid session id", "not connected to devtools", "chrome not reachable", "no such window",
+                       "target window already closed", "session deleted")
+
+
+def is_browser_dead(exc):
+    """Lỗi này nghĩa là Chrome đã chết (không phải lỗi của riêng 1 bài / 1 nút)"""
+    return any(p in str(exc).lower() for p in DEAD_BROWSER_ERRORS)
+
+
 def _same_path(a, b):
     return os.path.normcase(os.path.abspath(a.strip('"'))) == os.path.normcase(os.path.abspath(b))
 

@@ -29,6 +29,7 @@ from modules.products import load_pool, pick_pool
 from modules.watcher import GroupWatcher, daily_cap_reached, minutes_to_tomorrow
 from modules.db import Database
 from modules import browser
+from modules import noi_dung
 from modules.scanner import Scanner
 from modules.queue_runner import QueueRunner
 
@@ -317,12 +318,32 @@ def task_scheduled_post(force=False, test_groups=None, driver=None):
             elif note in SKIP_HOURS:
                 db.skip_posting(url, name, note, SKIP_HOURS[note])
 
+        # các khung giờ "@xoay" trong ngày (theo giờ): khung thứ n đăng mẫu màn thứ n của ngày (xoay vòng mọi mẫu)
+        rotating = sorted(str(r.get('time', ''))[:5] for r in schedule_data
+                          if str(r.get('content', '')).strip().lower() == noi_dung.ROTATE)
         for item in due_items:
             content = item.get('content', '')
             image_name = item.get('image') or None
             category = item.get('group_category')
+            t = str(item.get('time', ''))[:5]
+            try:
+                by_model = noi_dung.scheduled_post(content, rotating.index(t) if t in rotating else 0, now.date(),
+                                                   Config.NOI_DUNG_DIR)
+            except (ValueError, OSError) as e:
+                logger.error(f"✗ Lịch đăng {t}: {e}")
+                continue
+            if by_model:
+                content, model_image, model_name = by_model
+                image_name = image_name or model_image
+                logger.info(f"Bài đăng mẫu màn {model_name} (data/noi_dung) — mỗi nhóm 1 bài khác nhau")
 
             image_path = img_mgr.get_image(image_name)
+            if image_name and not image_path:
+                logger.warning(f"⚠ Không có ảnh '{image_name}' (cột image trong schedule.xlsx) trong {Config.IMAGE_DIR} "
+                               "— bài sẽ đăng KHÔNG có ảnh")
+            elif image_name and os.path.basename(image_path) != image_name:
+                logger.warning(f"⚠ Không còn ảnh '{image_name}' — dùng ảnh cùng mẫu: {os.path.basename(image_path)} "
+                               "(sửa cột image trong schedule.xlsx cho đúng tên)")
 
             # Lọc nhóm theo category, bỏ nhóm đã đăng hôm nay (tối đa 1 bài/nhóm/ngày)
             target_groups = ExcelReader.get_groups_by_category(groups, category) \
@@ -465,6 +486,15 @@ def task_classify(text):
     for label, hanoi in (("Trong nhóm Hà Nội", True), ("Trong nhóm toàn quốc", False)):
         v = run_filters(POST_FILTERS, PostCandidate(text, 0, Config, no_counts, ai=ai, hanoi_group=hanoi), Config)
         print(f"{label}: {'BÌNH LUẬN' if v.ok else 'BỎ QUA'} — {v.reason}")
+
+
+def task_import_content(src):
+    """Chép nội dung bán hàng (thư mục kiểu "Ảnh Màn-20-10") vào data/, nạp bình luận vào CSDL (mẫu cũ tắt)"""
+    content, n_images = noi_dung.copy_source(src, Config.NOI_DUNG_DIR, Config.IMAGE_DIR)
+    logger.info(f"✓ Đã chép nội dung vào {Config.NOI_DUNG_DIR} và {n_images} ảnh vào {Config.IMAGE_DIR}")
+    for name, n in noi_dung.import_to_db(db, content):
+        n_posts = len(noi_dung.posts(content, next(s for s in content.products if s["ten"] == name)))
+        logger.info(f"  ✓ {name}: {n} bình luận, {n_posts} bài đăng")
 
 
 def task_group_stats():
@@ -647,6 +677,8 @@ USAGE = """Cách dùng:
                                   trên web, tab "Phân loại bài"
   python main.py phanloai "nội dung bài"   Xem 1 câu được chấm MUA / BÁN / KHÔNG XÁC ĐỊNH (thử từ khóa)
   python main.py capnhatnhom  Đọc lại ngay số thành viên của mọi nhóm (bình thường tự đọc lại sau 24 giờ)
+  python main.py noidung ["thư mục"]  Nạp nội dung bán hàng (bình luận, bài đăng, ảnh) từ thư mục nguồn
+                              (mặc định "Ảnh Màn-20-10") vào data/noi_dung + data/images + CSDL
 """
 
 
@@ -691,6 +723,8 @@ if __name__ == "__main__":
         task_watch_groups(dry_run=True, only=int(arg) if arg.isdigit() else (arg or None))
     elif mode == "phanloai" and len(sys.argv) > 2:
         task_classify(" ".join(sys.argv[2:]))
+    elif mode == "noidung":
+        task_import_content(" ".join(sys.argv[2:]) or os.path.join(Config.BASE_DIR, "Ảnh Màn-20-10"))
     elif mode == "capnhatnhom":
         task_group_stats()
     else:

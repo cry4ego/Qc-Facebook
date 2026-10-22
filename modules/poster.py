@@ -175,15 +175,16 @@ class FacebookPoster:
 
     def post_batch(self, groups, content, image_path=None, on_result=None):
         """Đăng lần lượt vào tối đa MAX_POSTS_PER_DAY nhóm. Hỏng 3 nhóm liên tiếp (không tính nhóm chưa tham gia) thì dừng.
-        on_result(nhóm, thành công?, ghi chú): gọi sau mỗi nhóm (vd ghi nhớ nhóm chưa tham gia)"""
+        on_result(nhóm, thành công?, ghi chú): gọi sau mỗi nhóm (vd ghi nhớ nhóm chưa tham gia)
+        content: chữ, hoặc hàm i -> chữ (nhóm thứ i nhận bài khác nhau, không đăng trùng nội dung)"""
         results = []
         fails = 0
-        for group in groups:
+        for i, group in enumerate(groups):
             if len(results) >= self.config.MAX_POSTS_PER_DAY:
                 logger.info(f"Đã thử đủ {self.config.MAX_POSTS_PER_DAY} nhóm cho bài này (MAX_POSTS_PER_DAY)")
                 break
             url = group.get('group_url')
-            ok, note = self.post_to_group(url, content, image_path)
+            ok, note = self.post_to_group(url, content(i) if callable(content) else content, image_path)
             logger.info(f"  {'✓ Đã đăng' if ok else '✗ Không đăng được'}: {group.get('group_name') or url}"
                         + (f" — {note}" if note else ""))
             if on_result:

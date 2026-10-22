@@ -239,6 +239,10 @@ class Database:
             cols = [r["name"] for r in c.execute("PRAGMA table_info(group_lists)")]
             if "priority" not in cols:
                 c.execute("ALTER TABLE group_lists ADD COLUMN priority INTEGER DEFAULT 0")
+            cols = [r["name"] for r in c.execute("PRAGMA table_info(comment_variants)")]
+            if "safe_image" not in cols:  # ảnh riêng của mẫu: bản đầy đủ (ảnh bán hàng) / bản chỉ tên (ảnh gốc MSI)
+                c.execute("ALTER TABLE comment_variants ADD COLUMN image TEXT")
+                c.execute("ALTER TABLE comment_variants ADD COLUMN safe_image TEXT")
             cols = [r["name"] for r in c.execute("PRAGMA table_info(group_scans)")]
             if "avg_interactions" not in cols:  # tương tác trung bình mỗi bài (cảm xúc + bình luận + chia sẻ)
                 c.execute("ALTER TABLE group_scans ADD COLUMN avg_interactions REAL")

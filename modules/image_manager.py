@@ -8,16 +8,24 @@ class ImageManager:
         self.image_dir = image_dir
         os.makedirs(image_dir, exist_ok=True)
 
+    def _images(self):
+        return sorted(f for f in os.listdir(self.image_dir) if f.lower().endswith(('.jpg', '.jpeg', '.png')))
+
     def get_image(self, filename=None):
-        """Lấy đường dẫn ảnh, nếu không chỉ định thì random"""
+        """Lấy đường dẫn ảnh, nếu không chỉ định thì random. Tên trong lịch không còn (vd ảnh giá cũ đã xóa, đổi tên)
+        -> lấy ảnh cùng mẫu màn: tên trùng phần đầu dài nhất, ít nhất 2 đoạn (vd "MSI_G274QPF")"""
+        images = self._images()
         if filename:
             path = os.path.join(self.image_dir, filename)
             if os.path.exists(path):
                 return path
+            parts = os.path.splitext(filename)[0].split("_")
+            for n in range(len(parts), 1, -1):
+                prefix = "_".join(parts[:n]).lower()
+                same_model = [f for f in images if f.lower().startswith(prefix)]
+                if same_model:
+                    return os.path.join(self.image_dir, same_model[0])
             return None
-
-        images = [f for f in os.listdir(self.image_dir)
-                  if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
         if not images:
             return None
         return os.path.join(self.image_dir, random.choice(images))

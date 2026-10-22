@@ -154,15 +154,22 @@ def pick_pool(db, config, group_url=None):
     """Bình luận cho 1 bài viết: mỗi sản phẩm đang bật chọn ngẫu nhiên 1 mẫu đang bật
     - ưu tiên mẫu chưa dùng trong nhóm này 3 ngày gần đây, rồi mẫu ít được dùng nhất
     - không trùng nội dung với bình luận khác trong cùng bài
-    Trả về [{'text', 'safe_text', 'image', 'name', 'variant_id'}]"""
+    - COMMENT_PRODUCTS_PER_POST > 0: chỉ lấy ngần ấy sản phẩm, chọn ngẫu nhiên (20/10: 5 mẫu màn, mỗi bài 2 mẫu)
+    - ảnh: ảnh riêng của mẫu nếu có; bản không SĐT/địa chỉ dùng safe_image (ảnh gốc, không in SĐT)
+    Trả về [{'text', 'safe_text', 'image', 'safe_image', 'name', 'variant_id'}]"""
     ensure_seed(db, config)
     ensure_variants(db)
     recent = db.recent_variants_in_group(group_url) if group_url else set()
+    limit = getattr(config, "COMMENT_PRODUCTS_PER_POST", 0)
+    products = db.products(active_only=True)
+    if limit:
+        random.shuffle(products)
     pool, used_texts = [], set()
-    for p in db.products(active_only=True):
-        image = os.path.join(config.IMAGE_DIR, p["image"]) if p["image"] else None
-        if image and not os.path.exists(image):
-            image = None
+    for p in products:
+        if limit and len(pool) >= limit:
+            break
+        image = _image_path(config, p["image"])
+        safe_image = image
         options = [v for v in db.variants(p["id"], active_only=True)
                    if _content(v["text"], v["safe_text"], p)[0] not in used_texts and price_ready(v["text"], p)]
         if options:
@@ -170,6 +177,8 @@ def pick_pool(db, config, group_url=None):
             least = min(v["used_count"] for v in fresh)
             v = random.choice([v for v in fresh if v["used_count"] <= least + 1])  # ngẫu nhiên trong nhóm ít dùng
             text, safe = _content(v["text"], v["safe_text"], p)
+            image = _image_path(config, v.get("image")) or image
+            safe_image = _image_path(config, v.get("safe_image")) or image
             db.mark_variant_used(v["id"])
             vid = v["id"]
         elif (p["text"] or "").strip() and not db.variants(p["id"]):
@@ -180,8 +189,17 @@ def pick_pool(db, config, group_url=None):
         if text in used_texts:
             continue
         used_texts.add(text)
-        pool.append({"text": text, "safe_text": safe, "image": image, "name": p["name"], "variant_id": vid})
+        pool.append({"text": text, "safe_text": safe, "image": image, "safe_image": safe_image, "name": p["name"],
+                     "variant_id": vid})
     return pool
+
+
+def _image_path(config, name):
+    """Đường dẫn ảnh trong data/images (tên có thể kèm thư mục con, vd goc/g274qpx/img1.png); không có file -> None"""
+    if not name:
+        return None
+    path = os.path.join(config.IMAGE_DIR, *name.replace("\\", "/").split("/"))
+    return path if os.path.exists(path) else None
 
 
 # ---------- Nhập mẫu bình luận từ file ----------

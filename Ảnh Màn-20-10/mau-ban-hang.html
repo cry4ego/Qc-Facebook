@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Mẫu ảnh bán hàng - ASL Workshop</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!--
+  Mẫu ảnh bán hàng nền trắng 1920x1080 cho ASL Workshop.
+  Mở file với ?m=<mã> để xem từng màn, ví dụ: mau-ban-hang.html?m=g274qpx
+  Sửa nội dung / giá trong biến MODELS bên dưới.
+-->
+<style>
+  :root{
+    --navy:#0a2a6b; --navy2:#16408f; --red:#d0102e; --yellow:#ffc21a;
+    --ink:#14213d; --text:#3d4a63; --muted:#7a869c; --soft:#f2f5fb; --line:#e3e8f2; --green:#16a34a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1920px;height:1080px;overflow:hidden}
+  body{font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);background:#fff;position:relative}
+  .blob1{position:absolute;left:-180px;top:120px;width:1100px;height:900px;border-radius:50%;
+    background:radial-gradient(closest-side,#e6eeff 0%,#f3f7ff 55%,rgba(255,255,255,0) 100%)}
+
+  .wrap{position:relative;height:100%;display:flex;flex-direction:column;padding:34px 70px 0 60px}
+
+  header{display:flex;align-items:center;justify-content:space-between;height:90px}
+  header img{height:74px}
+  .chips{display:flex;gap:14px}
+  .chip{display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:999px;font-weight:800;font-size:20px}
+  .chip.used{background:#fff4f5;color:var(--red);border:2px solid #f6c6cd}
+  .chip.wty{background:var(--navy);color:#fff;font-size:21px}
+  .chip svg{width:22px;height:22px}
+
+  main{flex:1;display:grid;grid-template-columns:880px 1fr;gap:30px;padding-top:6px}
+
+  .prod{position:relative}
+  .prod .disc{position:absolute;left:230px;top:30px;width:620px;height:620px;border-radius:50%;
+    background:radial-gradient(circle at 40% 35%,#ffffff 0%,#e8efff 70%,#dce6fb 100%);box-shadow:inset 0 0 0 10px rgba(255,255,255,.7)}
+  .prod .pimg{position:absolute;left:130px;top:10px;width:820px;height:660px;object-fit:contain;filter:drop-shadow(0 30px 30px rgba(10,42,107,.22))}
+  /* 4 thông số chính xếp thành cột bên trái ảnh */
+  #bubbles{position:absolute;left:0;top:20px;display:flex;flex-direction:column;gap:22px}
+  .bubble{width:136px;height:136px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:#fff;box-shadow:0 14px 30px rgba(10,42,107,.22);border:5px solid #fff;text-align:center}
+  .bubble b{font-size:42px;font-weight:900;line-height:1}
+  .bubble b small{font-size:20px}
+  .bubble span{font-size:15px;font-weight:700;margin-top:4px;opacity:.95}
+  .bubble:nth-child(odd){background:var(--navy)}
+  .bubble:nth-child(even){background:var(--red)}
+
+  .fit{position:absolute;left:0;right:0;bottom:22px}
+  .fit h4{font-size:19px;font-weight:800;color:var(--muted);letter-spacing:2px;margin-bottom:12px}
+  .fit .row{display:flex;gap:10px;flex-wrap:nowrap}
+  .fit .it{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid var(--line);border-radius:14px;padding:11px 14px;white-space:nowrap;
+    font-size:18px;font-weight:700;color:var(--ink);box-shadow:0 6px 16px rgba(10,42,107,.06)}
+  .fit .it i{font-style:normal;font-size:21px}
+
+  .eyebrow{display:inline-block;background:var(--red);color:#fff;font-weight:800;font-size:18px;letter-spacing:2px;padding:7px 16px;border-radius:8px}
+  h1{font-size:84px;font-weight:900;color:var(--navy);line-height:1;margin:14px 0 10px;letter-spacing:-1px;white-space:nowrap}
+  .lead{font-size:26px;color:var(--text);font-weight:500;line-height:1.4}
+  .lead b{color:var(--ink);font-weight:800}
+
+  .why{margin-top:22px}
+  .why h3{font-size:24px;font-weight:900;color:var(--ink);margin-bottom:12px}
+  .why h3 span{color:var(--red)}
+  .why ul{list-style:none;display:flex;flex-direction:column;gap:11px}
+  .why li{display:flex;align-items:flex-start;gap:14px;font-size:20.5px;color:var(--text);line-height:1.35}
+  .why li .ck{flex:none;width:30px;height:30px;border-radius:50%;background:#e9f8ef;display:grid;place-items:center;margin-top:1px}
+  .why li .ck svg{width:18px;height:18px;stroke:var(--green);stroke-width:3.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .why li b{color:var(--ink);font-weight:800}
+
+  .spec{margin-top:20px;background:var(--soft);border-radius:18px;padding:14px 24px;display:grid;grid-template-columns:1fr 1fr;column-gap:30px}
+  .spec .r{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:17px}
+  .spec .r:nth-last-child(-n+2){border-bottom:none}
+  .spec dt{color:var(--muted);font-weight:500;white-space:nowrap}
+  .spec dd{font-weight:700;color:var(--ink);text-align:right}
+
+  /* footer: giá | liên hệ | địa chỉ */
+  footer{margin:0 -70px 0 -60px;height:150px;background:var(--navy);display:grid;grid-template-columns:660px 1fr 520px;color:#fff}
+  .price{background:var(--red);display:flex;align-items:center;gap:22px;padding-left:60px;clip-path:polygon(0 0,100% 0,91% 100%,0 100%)}
+  .price .tag{width:70px;height:70px;flex:none}
+  .price .k{font-size:19px;font-weight:800;letter-spacing:2px;color:#ffe08a}
+  .price .v{font-size:68px;font-weight:900;line-height:1;color:var(--yellow);letter-spacing:-.5px;margin:2px 0 4px}
+  .price .v small{font-size:46px;margin-left:4px}
+  .price .s{font-size:21px;font-weight:700;color:#fff}
+  .price .s b{color:var(--yellow);font-weight:900}
+  .c{display:flex;align-items:center;gap:20px;padding-left:8px}
+  .c .ic{width:74px;height:74px;border-radius:50%;background:var(--yellow);display:grid;place-items:center;flex:none;box-shadow:0 0 0 8px rgba(255,194,26,.2)}
+  .c .ic svg{width:36px;height:36px;fill:var(--navy)}
+  .c .who{font-size:20px;font-weight:600;color:#c9d5f0}
+  .c .who b{color:#fff;font-weight:800}
+  .c .num{font-size:54px;font-weight:900;line-height:1.05;letter-spacing:1px;white-space:nowrap}
+  .c .num span{color:var(--yellow)}
+  .a{display:flex;align-items:center;justify-content:flex-end;gap:18px;padding-right:70px;border-left:1px solid rgba(255,255,255,.15)}
+  .a svg{width:46px;height:46px;flex:none;stroke:var(--yellow);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .a .k{font-size:18px;font-weight:600;letter-spacing:1px;color:#c9d5f0}
+  .a .v{font-size:30px;font-weight:800;line-height:1.15}
+</style>
+</head>
+<body>
+<div class="blob1"></div>
+<div class="wrap">
+  <header>
+    <img src="assets/logo-asl.png" alt="ASL Workshop">
+    <div class="chips">
+      <div class="chip used"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>Hàng công ty đã qua sử dụng</div>
+      <div class="chip wty"><svg viewBox="0 0 24 24" fill="none" stroke="#ffc21a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>Bảo hành: tháng đầu lỗi 1 đổi 1</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="prod">
+      <div class="disc"></div>
+      <img class="pimg" id="pimg" alt="">
+      <div id="bubbles"></div>
+      <div class="fit"><h4>PHÙ HỢP CHO</h4><div class="row" id="fit"></div></div>
+    </section>
+
+    <section class="info">
+      <span class="eyebrow" id="eyebrow"></span>
+      <h1 id="name"></h1>
+      <p class="lead" id="lead"></p>
+      <div class="why">
+        <h3>Vì sao nên chọn <span>chiếc màn này?</span></h3>
+        <ul id="perks"></ul>
+      </div>
+      <dl class="spec" id="spec"></dl>
+    </section>
+  </main>
+
+  <footer>
+    <div class="price">
+      <svg class="tag" viewBox="0 0 24 24" fill="none" stroke="#ffc21a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+      <div><div class="k" id="pk"></div><div class="v" id="pv"></div><div class="s" id="ps"></div></div>
+    </div>
+    <div class="c">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></svg></div>
+      <div><div class="who">Liên hệ:&nbsp;<b>Hoàng Văn Dũng</b></div><div class="num">0902 <span>189</span> 751</div></div>
+    </div>
+    <div class="a">
+      <svg viewBox="0 0 24 24"><path d="M12 22s7-6.3 7-12a7 7 0 0 0-14 0c0 5.7 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
+      <div><div class="k">ĐỊA CHỈ</div><div class="v">64 Cầu Diễn<br>Hà Nội</div></div>
+    </div>
+  </footer>
+</div>
+
+<script>
+// Nội dung lấy từ trang chính thức msi.com (Specification + Overview) của từng mã.
+const MODELS = {
+  "g274qpx": {
+    name: "MSI G274QPX", eyebrow: "MÀN HÌNH GAMING ESPORTS 27 INCH",
+    img: "assets/g274qpx/img1.png", zoom: 0.86,
+    lead: "Màn <b>2K – 240Hz – Rapid IPS</b>: tốc độ esports,<br>màu cực rộng, USB-C sạc 65W cho laptop.",
+    bubbles: [["27<small>\"</small>","Màn lớn"],["2K","QHD sắc nét"],["240<small>Hz</small>","Siêu mượt"],["1<small>ms</small>","Phản hồi"]],
+    fit: [["🎯","Game esports"],["🎮","Chơi game"],["🎨","Đồ hoạ"],["💼","Văn phòng"],["🎬","Xem phim"]],
+    perks: [
+      "<b>240Hz + 1ms + G-Sync Compatible</b> – game bắn súng mượt, không xé hình.",
+      "<b>2K sắc nét</b> – nhiều điểm ảnh gấp ~1,8 lần Full HD, nhìn rộng hơn.",
+      "<b>Màu cực rộng</b> – 136% sRGB, 98% DCI-P3, 1,07 tỷ màu.",
+      "<b>HDR 400 + Night Vision</b> – làm sáng vùng tối, thấy rõ chi tiết.",
+      "<b>USB-C sạc 65W</b> – 1 dây cho laptop: vừa lên hình, vừa sạc.",
+      "<b>Bảo vệ mắt chuẩn TÜV</b> – chống nháy, giảm ánh sáng xanh.",
+      "<b>Chân đế (+150k)</b> – nâng hạ 130mm, xoay ±45°, xoay dọc 90°."
+    ],
+    spec: [["Độ phân giải","2560 × 1440"],["Tấm nền","Rapid IPS, chống chói"],["Tần số / phản hồi","240Hz / 1ms GtG"],["Độ sáng","400 nits · HDR 400"],
+           ["Cổng hình","1×DP 1.4a · 2×HDMI 2.0b"],["USB-C","DP Alt · sạc 65W"],["Góc nhìn","178° / 178°"],["Treo tường","VESA 75 × 75"]],
+    price: { label: "GIÁ KHÔNG CHÂN", value: "2.750.000", sub: "Có chân đế: <b>2.900.000đ</b>" }
+  },
+  "g274qpf-e2": {
+    name: "MSI G274QPF E2", eyebrow: "MÀN HÌNH GAMING 27 INCH",
+    img: "assets/g274qpf-e2/img3.png", zoom: 1.2,
+    lead: "Màn <b>2K – 180Hz – Rapid IPS</b>: chơi game mượt,<br>làm việc rõ nét, xem phim màu đẹp.",
+    bubbles: [["27<small>\"</small>","Màn lớn"],["2K","QHD sắc nét"],["180<small>Hz</small>","Siêu mượt"],["1<small>ms</small>","Phản hồi"]],
+    fit: [["🎮","Chơi game"],["💼","Văn phòng"],["🎨","Đồ hoạ"],["🎬","Xem phim"],["📚","Học tập"]],
+    perks: [
+      "<b>2K sắc nét</b> – nhiều điểm ảnh gấp ~1,8 lần Full HD.",
+      "<b>180Hz + 1ms + Adaptive-Sync</b> – game mượt, không giật, không xé hình.",
+      "<b>Màu tươi, chuẩn</b> – 1,07 tỷ màu, 119% sRGB, 93% DCI-P3.",
+      "<b>HDR 400 + Night Vision</b> – cảnh tối vẫn thấy rõ chi tiết.",
+      "<b>1 dây USB-C cho laptop</b> – vừa lên hình 180Hz, vừa sạc 15W.",
+      "<b>Dịu mắt</b> – chống nháy, giảm ánh sáng xanh, góc nhìn 178°.",
+      "<b>Chân đế (+150k)</b> – nâng hạ 130mm, xoay ±30°, xoay dọc 90°."
+    ],
+    spec: [["Độ phân giải","2560 × 1440"],["Tấm nền","Rapid IPS, chống chói"],["Tần số / phản hồi","180Hz / 1ms GtG"],["Độ sáng","400 nits · HDR 400"],
+           ["Cổng hình","1×DP 1.4a · 2×HDMI 2.0b"],["USB-C","DP Alt · sạc 15W"],["Góc nhìn","178° / 178°"],["Treo tường","VESA 75 × 75"]],
+    price: { label: "GIÁ KHÔNG CHÂN", value: "2.500.000", sub: "Có chân đế: <b>2.650.000đ</b>" }
+  },
+  "g274qrfw": {
+    name: "MSI G274QRFW", eyebrow: "MÀN HÌNH GAMING 27 INCH · MÀU TRẮNG",
+    img: "assets/g274qrfw/img2.png",
+    lead: "Màn <b>2K – 170Hz – Rapid IPS</b> màu trắng tinh tế,<br>hợp góc máy trắng, có đèn RGB phía sau.",
+    bubbles: [["27<small>\"</small>","Màn lớn"],["2K","QHD sắc nét"],["170<small>Hz</small>","Siêu mượt"],["1<small>ms</small>","Phản hồi"]],
+    fit: [["🎮","Chơi game"],["🕹️","Máy PS5"],["💼","Văn phòng"],["🎬","Xem phim"],["📚","Học tập"]],
+    perks: [
+      "<b>Thiết kế trắng + đèn RGB</b> – góc máy sáng sủa, đẹp, nổi bật.",
+      "<b>2K sắc nét</b> – nhiều điểm ảnh gấp ~1,8 lần Full HD.",
+      "<b>170Hz + 1ms</b> – G-Sync Compatible, FreeSync Premium, không xé hình.",
+      "<b>Màu tươi</b> – 1,07 tỷ màu, 125% sRGB, 90% DCI-P3.",
+      "<b>Night Vision + HDR Ready</b> – làm sáng vùng tối, rõ chi tiết.",
+      "<b>Less Blue Light PRO</b> – lọc ánh sáng xanh bằng phần cứng, chống nháy.",
+      "<b>Tối ưu cho PS5</b> – hỗ trợ độ phân giải 2K, Full HD 120Hz."
+    ],
+    spec: [["Độ phân giải","2560 × 1440"],["Tấm nền","Rapid IPS, chống chói"],["Tần số / phản hồi","170Hz / 1ms"],["Độ sáng","300 nits · HDR Ready"],
+           ["Cổng hình","1×DP 1.4 · 2×HDMI 2.0b"],["Đồng bộ","G-Sync · FreeSync Pre."],["Góc nhìn","178° / 178°"],["Treo tường","VESA 75 × 75"]],
+    price: { label: "GIÁ KHÔNG CHÂN", value: "2.500.000", sub: "" }
+  },
+  "g272qpf-e2": {
+    name: "MSI G272QPF E2", eyebrow: "MÀN HÌNH GAMING 27 INCH",
+    img: "assets/g272qpf-e2/img4.png",
+    lead: "Màn <b>2K – 180Hz – Rapid IPS</b> giá tốt:<br>chơi game mượt, làm việc rõ nét, màu đẹp.",
+    bubbles: [["27<small>\"</small>","Màn lớn"],["2K","QHD sắc nét"],["180<small>Hz</small>","Siêu mượt"],["1<small>ms</small>","Phản hồi"]],
+    fit: [["🎮","Chơi game"],["💼","Văn phòng"],["🎨","Đồ hoạ"],["🎬","Xem phim"],["📚","Học tập"]],
+    perks: [
+      "<b>2K sắc nét</b> – nhiều điểm ảnh gấp ~1,8 lần Full HD.",
+      "<b>180Hz + 1ms + FreeSync</b> – game mượt, không giật, không xé hình.",
+      "<b>Màu tươi</b> – 1,07 tỷ màu, 125% sRGB, 94% DCI-P3.",
+      "<b>Tương phản 1200:1 + Night Vision</b> – vùng tối vẫn rõ chi tiết.",
+      "<b>Góc nhìn 178°, chống chói</b> – ngồi lệch vẫn đẹp, dịu mắt.",
+      "<b>Bảo vệ mắt</b> – chống nháy (Anti-Flicker), giảm ánh sáng xanh.",
+      "<b>Chân đế (+150k)</b> – nâng hạ 130mm, xoay ±30°, xoay dọc 90°."
+    ],
+    spec: [["Độ phân giải","2560 × 1440"],["Tấm nền","Rapid IPS, chống chói"],["Tần số / phản hồi","180Hz / 1ms GtG"],["Độ sáng","300 nits · HDR Ready"],
+           ["Cổng hình","1×DP 1.4 · 2×HDMI 2.0b"],["Dải màu","125% sRGB · 94% DCI-P3"],["Góc nhìn","178° / 178°"],["Treo tường","VESA 100 × 100"]],
+    price: { label: "GIÁ KHÔNG CHÂN", value: "2.400.000", sub: "Có chân đế: <b>2.550.000đ</b>" }
+  },
+  "mp273qp": {
+    name: "MSI PRO MP273QP", eyebrow: "MÀN HÌNH VĂN PHÒNG 27 INCH",
+    img: "assets/mp273qp/img2.png",
+    lead: "Màn <b>2K – IPS – có loa</b>, bảo vệ mắt chuẩn TÜV:<br>làm việc, học tập thoải mái cả ngày.",
+    bubbles: [["27<small>\"</small>","Màn lớn"],["2K","QHD sắc nét"],["75<small>Hz</small>","Mượt mắt"],["2×2<small>W</small>","Loa kép"]],
+    fit: [["💼","Văn phòng"],["💻","Lập trình"],["📊","Excel, kế toán"],["🎓","Học online"],["🎬","Xem phim"]],
+    perks: [
+      "<b>2K sắc nét</b> – không gian làm việc rộng, chữ nhỏ vẫn rõ.",
+      "<b>Bảo vệ mắt chuẩn TÜV</b> – chống nháy, Less Blue Light PRO, chống chói.",
+      "<b>Tấm nền IPS, góc nhìn 178°</b> – màu đẹp, 102% sRGB.",
+      "<b>Loa kép 2×2W</b> – nghe nhạc, họp online không cần loa ngoài.",
+      "<b>Chân đế công thái học</b> – nâng hạ, nghiêng, xoay ±30°, xoay dọc 90°.",
+      "<b>75Hz + FreeSync</b> – cuộn trang, xem video mượt hơn màn 60Hz.",
+      "<b>Phần mềm Display Kit</b> – chia màn hình, đổi chế độ màu dễ dàng."
+    ],
+    spec: [["Độ phân giải","2560 × 1440"],["Tấm nền","IPS, chống chói"],["Tần số / phản hồi","75Hz / 1ms MPRT"],["Màu sắc","16,7 triệu · 102% sRGB"],
+           ["Cổng hình","1×DP 1.2a · 2×HDMI 1.4b"],["Loa","2 × 2W"],["Chân đế","Nâng hạ · xoay dọc"],["Treo tường","VESA 75 × 75"]],
+    price: { label: "GIÁ BÁN", value: "1.950.000", sub: "" }
+  }
+};
+
+const key = new URLSearchParams(location.search).get("m") || "g274qpx";
+const m = MODELS[key];
+const $ = id => document.getElementById(id);
+const CK = '<span class="ck"><svg viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg></span>';
+document.title = m.name + " - ASL Workshop";
+$("pimg").src = m.img; $("pimg").alt = m.name;
+if (m.zoom) $("pimg").style.transform = `scale(${m.zoom})`; // ảnh gốc nhiều khoảng trắng thì phóng to
+$("bubbles").innerHTML = m.bubbles.map(b => `<div class="bubble"><b>${b[0]}</b><span>${b[1]}</span></div>`).join("");
+$("fit").innerHTML = m.fit.map(f => `<div class="it"><i>${f[0]}</i>${f[1]}</div>`).join("");
+$("eyebrow").textContent = m.eyebrow;
+$("name").textContent = m.name;
+$("lead").innerHTML = m.lead;
+$("perks").innerHTML = m.perks.map(p => `<li>${CK}<span>${p}</span></li>`).join("");
+$("spec").innerHTML = m.spec.map(s => `<div class="r"><dt>${s[0]}</dt><dd>${s[1]}</dd></div>`).join("");
+$("pk").textContent = m.price.label;
+$("pv").innerHTML = m.price.value + "<small>đ</small>";
+$("ps").innerHTML = m.price.sub;
+if (!m.price.sub) $("ps").remove();
+</script>
+</body>
+</html>

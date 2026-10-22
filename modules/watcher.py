@@ -18,6 +18,7 @@ from modules.db import SENT, PENDING, BLOCKED, REJECTED, REJECTED_DELETED, FULL,
 from modules.commenter import _key, _norm
 from modules import group_checker as gc
 from modules.group_finder import normalize_group_url as gc_url, is_hanoi_group
+from modules.browser import is_browser_dead
 from modules.topic import topic, MONITOR, PC, LAPTOP  # noqa: F401  (topic: dùng lại từ module khác)
 from modules import fb_selectors as sel
 from modules import filters as flt
@@ -356,14 +357,15 @@ class GroupWatcher:
         """Gửi 1 bình luận (bản đầy đủ hoặc an toàn). Bị từ chối thì xóa ngay. Lưu & trả về trạng thái"""
         variant = SAFE if safe else FULL
         text = c["safe_text"] if safe else c["text"]
-        status, detail = commenter.send_comment({"text": text, "image": c["image"]})
+        image = (c.get("safe_image") or c["image"]) if safe else c["image"]  # bản không SĐT: ảnh không in SĐT
+        status, detail = commenter.send_comment({"text": text, "image": image})
         if status == REJECTED:
             if commenter.last_article is not None and commenter.delete_comment(commenter.last_article):
                 status, detail = REJECTED_DELETED, "nhóm/Facebook từ chối — đã tự xóa bình luận"
             else:
                 detail = "nhóm/Facebook từ chối — KHÔNG xóa được, cần xóa tay"
         detail = "; ".join(x for x in (note, detail) if x)
-        self.db.add_comment(post_id, idx, text, os.path.basename(c["image"] or ""), status, detail, variant,
+        self.db.add_comment(post_id, idx, text, os.path.basename(image or ""), status, detail, variant,
                             c.get("variant_id"))
         self.logger.info(f"  [{idx}] {status} ({variant})" + (f" — {detail}" if detail else ""))
         return status
@@ -415,7 +417,13 @@ class GroupWatcher:
                     self.db.mark_safe_all("Facebook báo bị chặn bình luận")
                     break  # bị chặn thì dừng ngay, không gửi tiếp
         except Exception as e:
-            self.logger.error(f"  ✗ Lỗi khi bình luận: {e}")
+            if is_browser_dead(e):
+                # Chrome chết giữa chừng: chưa gửi được gì thì xóa khỏi nhật ký để bình luận lại sau khi mở Chrome mới
+                if not any(s in (SENT, PENDING) for s in results):
+                    self.db.forget_failed_post(p["url"])
+                self.logger.error("  ✗ Chrome đã đóng / mất kết nối giữa lúc bình luận — mở lại Chrome rồi bình luận lại")
+                raise
+            self.logger.error(f"  ✗ Lỗi khi bình luận: {str(e).splitlines()[0][:200]}")
 
         shot = commenter.screenshot(os.path.join(self.config.SCREENSHOT_DIR, f"{post_id}.png"))
         ok = sum(s in (SENT, PENDING) for s in results)

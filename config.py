@@ -55,6 +55,11 @@ class Config:
     # chủ đề được bình luận: chủ shop chỉ muốn bài TÌM MÀN HÌNH (08/10: bỏ bài tìm PC / linh kiện lẻ — SSD, VGA, CPU…).
     # Bài build PC có kèm màn hình vẫn tính là "Màn hình". Thêm "PC" / "Laptop" nếu muốn; [] = mọi bài
     COMMENT_TOPICS = ["Màn hình"]
+    # mỗi bài cần mua: bình luận ... mẫu màn (chọn ngẫu nhiên trong các sản phẩm đang bật); 0 = mọi sản phẩm đang bật
+    # (20/10: 5 mẫu màn — chủ shop muốn mỗi bài 5 bình luận riêng, mỗi bình luận 1 mẫu màn + 1 ảnh bán hàng.
+    #  Bị Facebook chặn bình luận thì giảm số này hoặc MAX_COMMENTED_POSTS_PER_DAY)
+    COMMENT_PRODUCTS_PER_POST = 5
+    NOI_DUNG_DIR = os.path.join(DATA_DIR, "noi_dung")  # nội dung bán hàng: python main.py noidung "<thư mục nguồn>"
     MAX_COMMENTED_POSTS_PER_DAY = 40  # giới hạn số bài/ngày (05/10 bị chặn sau 121 bài); 0 = không giới hạn
     ROUND_IDLE_MINUTES = 5            # vòng quét không có bài mới -> chờ ... phút rồi quét lại
     WATCH_SCROLLS = 60                # số lần cuộn tối đa mỗi nhóm (dừng sớm khi gặp bài cũ hơn MAX_POST_AGE_MINUTES)
@@ -81,6 +86,9 @@ class Config:
     SCAN_ACTIVE_MINUTES = 5           # nhóm có khách tìm màn hình / nhiều bài mỗi ngày: quét lại mỗi ... phút
     SCAN_ACTIVE_POSTS_PER_DAY = 100   # nhóm có từ ... bài mới/ngày (trang Giới thiệu) tính là nhóm hoạt động mạnh
     SCAN_OVERLAP_MINUTES = 10         # quét lại chỉ xét bài đăng sau lần quét trước + ... phút dự phòng (nên quét rất nhanh)
+    # ... nhưng luôn xét ít nhất ... phút: bài ẩn danh / nhóm duyệt bài hiện lên bảng tin MUỘN với giờ đăng gốc
+    # (10/10: bài "Họp chợ màn văn phòng… cần 2 chiếc tại HN" hiện lên khi đã quá 15 phút -> bị bỏ sót)
+    SCAN_MIN_WINDOW_MINUTES = 120
     SCAN_PAUSE_SECONDS = (3, 8)       # nghỉ ngẫu nhiên giữa 2 lần quét nhóm (giây)
     QUEUE_IDLE_SECONDS = 15           # hàng chờ trống: ... giây sau xem lại
     QUEUE_HOUSEKEEP_MINUTES = 30      # lúc rảnh, cứ ... phút tự tham gia nhóm chưa vào + kiểm tra lại bài đã bình luận 1 lần

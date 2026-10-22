@@ -227,6 +227,12 @@ class FacebookCommenter:
 
             editor = self._send_keys(editor, Keys.ENTER)
             cleared = self._wait_editor_cleared(editor)
+            if not cleared and self.find_comment(comment['text']) is None:
+                # Enter đầu chưa gửi (thường do ảnh tải lên chậm), bình luận chưa hiện trên bài -> bấm gửi lại 1 lần
+                editor = self._send_keys(self._find_editor(), Keys.ENTER)
+                cleared = self._wait_editor_cleared(editor)
+            elif not cleared:
+                cleared = True  # bình luận đã hiện trên bài (ô soạn chậm xóa chữ): không gửi lại kẻo trùng
             time.sleep(2)
 
             if any(p in self._notices() for p in BLOCKED_PHRASES):

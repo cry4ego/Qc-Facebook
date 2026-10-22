@@ -71,8 +71,13 @@ class QueueRunner:
                        group_url=group["group_url"], post_text=text[:400], post_url=item["post_url"],
                        post_topic=item["topic"] or "", post_age=age, post_i=1, post_total=1,
                        comment_i=0, comment_total=len(pool), product="", next_at="")
-        result = self.watcher.comment_post(self.commenter, pool, group,
-                                           {"url": item["post_url"], "text": text, "age": age})
+        try:
+            result = self.watcher.comment_post(self.commenter, pool, group,
+                                               {"url": item["post_url"], "text": text, "age": age})
+        except Exception:
+            # Chrome chết giữa chừng: trả bài lại hàng chờ, để vòng ngoài mở Chrome mới rồi bình luận lại
+            self.db.set_queue_status(item["id"], Q_WAITING, item["result"] or "")
+            raise
         if result == "Thất bại" and item["result"] != RETRY_MARK and self.db.forget_failed_post(item["post_url"]):
             # chưa gửi được bình luận nào (thường do mạng chập chờn): trả lại hàng chờ, thử lại 1 lần
             self.db.set_queue_status(item["id"], Q_WAITING, RETRY_MARK)
