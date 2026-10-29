@@ -3,6 +3,11 @@
 Mỗi mục: chuyện gì xảy ra → nguyên nhân gốc → **quy tắc dùng lại được** → dấu hiệu để nhận ra lần sau. Viết ngắn, thêm mục mới lên đầu.
 Không ghi dữ liệu của khách hay SĐT vào file này.
 
+## 29/10/2026 — Ca thử chép từ dữ liệu thật mang theo SĐT của khách
+- **Chuyện:** ngay trước khi commit, soát lại thì thấy 3 số điện thoại trong test (`tests/test_danh_gia.py`) là số THẬT của khách (có trong 6, 1, 5 bài) — tôi lấy chính các ca bộ che bỏ sót làm ca thử. Remote GitHub lại công khai. Đã thay bằng số bịa cùng kiểu viết trước khi commit; lịch sử git chưa từng chứa chúng.
+- **Quy tắc:** ca khó lấy từ production thì giữ KIỂU viết, thay GIÁ TRỊ (số, tên, link) bằng giá trị bịa. Trước mỗi commit, quét mọi chuỗi giống SĐT trong file sắp commit và đối chiếu với bài thật trong CSDL (bỏ qua SĐT của shop).
+- **Nhận ra:** ca thử "giống thật quá" — một số điện thoại cụ thể, đầy đủ mà không phải số của shop.
+
 ## 29/10/2026 — Đo bằng số thật trước khi tin, và xem tay chính các ca "sai"
 - **Chuyện:** bộ đánh giá báo "52 bài còn lộ chuỗi giống SĐT" sau khi che. Xem tay thì có 47 bài là SĐT thật bị che sót (dính liền chữ, thiếu số 0 đầu), nhưng sau khi sửa thì thước đo thô vẫn báo 35 bài — hóa ra là thông số máy, năm, giá.
 - **Nguyên nhân gốc:** thước đo "≥ 9 chữ số bất kỳ" nối số qua cả dấu xuống dòng nên vừa bỏ sót vừa báo nhầm.
