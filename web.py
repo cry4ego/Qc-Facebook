@@ -19,6 +19,7 @@ from modules import group_lists as gl
 from modules.group_checker import usable_groups
 from modules.group_finder import is_hanoi_group
 from modules import filters as flt
+from cong_ty import web_api as cong_ty_web
 
 WEB_DIR = os.path.join(Config.BASE_DIR, "web")
 app = Flask(__name__, static_folder=None)
@@ -27,6 +28,7 @@ db = Database(Config.DB_FILE)
 prod.ensure_seed(db, Config)
 prod.ensure_variants(db)
 gl.ensure_builtin(db, Config)
+app.register_blueprint(cong_ty_web.tao_blueprint(db, Config))   # tab "Công ty AI": báo cáo sáng, ghi khách, sổ sự thật
 
 PROBLEM_COMMENT = (PENDING, BLOCKED, ERROR, REJECTED, REJECTED_DELETED)
 
@@ -184,7 +186,7 @@ def safe_groups():
     return jsonify({
         "all": db.get_setting("safe_all", "0") == "1",
         "all_reason": db.get_setting("safe_all_reason", ""),
-        "groups": db.query("SELECT * FROM safe_groups ORDER BY since DESC"),
+        "groups": [{**g, "stopped": db.is_stopped(g["group_url"])} for g in db.query("SELECT * FROM safe_groups ORDER BY since DESC")],
     })
 
 

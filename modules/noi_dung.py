@@ -1,10 +1,13 @@
 """
 Nội dung bán hàng theo mẫu màn (20/10, từ thư mục "Ảnh Màn-20-10"), lưu ở data/noi_dung:
-  cau-hinh.json        người bán, SĐT/Zalo, địa chỉ, bảo hành, câu ký tên, danh sách mẫu màn (giá, ảnh)
-  binh-luan/<mã>.md    30 bình luận / mẫu màn — "## MÃ" rồi nội dung (không ghi SĐT/địa chỉ trong thân)
+  cau-hinh.json        người bán, SĐT/Zalo, địa chỉ, bảo hành, câu kết bình luận, danh sách mẫu màn (giá, ảnh, tom_tat)
+  binh-luan/<mã>.md    bình luận / mẫu màn (26/10/2026: thẻ ngắn mã màn + thông số + công nghệ, xem tools/viet_lai_binh_luan.py)
+                       — "## MÃ" rồi nội dung (không ghi SĐT/địa chỉ trong thân)
   bai-dang/<mã>.md     10 bài đăng / mẫu màn — "## MÃ | Nhóm nên đăng" rồi nội dung (có liên hệ)
+Câu kết bình luận: bản đầy đủ = {lien_he} (một dòng "Dũng-0902189751-64 Cầu Diễn", xem lien_he_gon); bản không SĐT = không có
+câu kết (câu kết rỗng thì không thêm dòng).
 Ảnh: ảnh bán hàng (Anh-ban-hang, có giá + SĐT + địa chỉ) -> data/images/<tên>.png — chủ shop dùng ảnh này cho bài
-đăng và cho cả 2 bản bình luận (đầy đủ / chỉ tên người bán); ảnh gốc MSI (anh_goc) không dùng.
+đăng và cho cả 2 bản bình luận (đầy đủ / không SĐT); ảnh gốc MSI (anh_goc) không dùng.
 
 python main.py noidung ["thư mục nguồn"]  : chép nội dung + ảnh vào data/, nạp bình luận vào CSDL (thay mẫu cũ).
 Bài đăng theo lịch: cột content = "@xoay" (xoay vòng mẫu màn mỗi ngày) hoặc "@<mã>" (vd @g274qpx) — mỗi nhóm nhận
@@ -102,11 +105,22 @@ def _read(content, kind, sp):
         return parse_md(f.read())
 
 
+def lien_he_gon(nguoi_ban, sdt, dia_chi):
+    """Dòng liên hệ gọn của bình luận: tên gọi (chữ cuối của họ tên) - SĐT viết liền - số nhà + phố (trước dấu phẩy đầu tiên), vd
+    ("Hoàng Văn Dũng", "0902 189 751", "64 Cầu Diễn, Hà Nội") -> "Dũng-0902189751-64 Cầu Diễn". Chủ shop 26/10/2026: họ tên đầy đủ
+    trong bình luận bị Facebook gợi ý gắn thẻ nhầm người. Thiếu một phần thì trả chuỗi rỗng"""
+    ten = (nguoi_ban or "").split()
+    so = re.sub(r"\D", "", sdt or "")
+    pho = " ".join((dia_chi or "").split(",")[0].split())
+    return "-".join((ten[-1], so, pho)) if ten and so and pho else ""
+
+
 def _values(content, sp, contact):
     values = {k: sp.get(k) for k in PRICE_KEYS}
     values["bao_hanh"] = content.config["bao_hanh"]
     if contact:
         values.update({k: content.config[k] for k in CONTACT_KEYS})
+        values["lien_he"] = lien_he_gon(values["nguoi_ban"], values["sdt"], values["dia_chi"])    # {lien_he} trong câu kết
     return values
 
 
@@ -119,8 +133,10 @@ def comments(content, sp):
     for i, it in enumerate(_read(content, "binh-luan", sp)):
         where = f"binh-luan/{sp['ma']}.md {it.code}"
         body = render(it.text, body_values, where)
-        full = body + "\n" + render(full_signs[(i + idx) % len(full_signs)], sign_values, "ket_bl_day_du")
-        safe = body + "\n" + render(safe_signs[(i + idx) % len(safe_signs)], sign_values, "ket_bl_chi_ten")
+        full_sign = render(full_signs[(i + idx) % len(full_signs)], sign_values, "ket_bl_day_du")
+        safe_sign = render(safe_signs[(i + idx) % len(safe_signs)], sign_values, "ket_bl_chi_ten")
+        full = body + ("\n" + full_sign if full_sign.strip() else "")      # câu kết rỗng (vd bản không SĐT từ 28/10) thì không thêm dòng trống
+        safe = body + ("\n" + safe_sign if safe_sign.strip() else "")
         image = image_name(it.image or sp["anh"])  # chủ shop: cả 2 bản đều dùng ảnh bán hàng (Anh-ban-hang)
         out.append(Comment(it.code, full, safe, image, image))
     return out

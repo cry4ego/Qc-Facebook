@@ -9,24 +9,14 @@
   "bao_hanh": "tháng đầu lỗi 1 đổi 1",
   "tinh_trang": "Hàng công ty đã qua sử dụng",
 
+  "_ghi_chu_ket": "Câu kết (28/10/2026): bản đầy đủ chỉ có MỘT dòng liên hệ {lien_he} = tên gọi-SĐT liền-số nhà + phố (vd Dũng-0902189751-64 Cầu Diễn), tự dựng từ nguoi_ban / sdt / dia_chi bên trên. KHÔNG ghi họ tên đầy đủ (Facebook gợi ý gắn thẻ nhầm người). Bản không SĐT không có câu kết (để rỗng).",
+
   "ket_bl_day_du": [
-    "SĐT/Zalo: {sdt} – {nguoi_ban} · Địa chỉ: {dia_chi}",
-    "Liên hệ {nguoi_ban}: {sdt} (gọi hoặc Zalo) – địa chỉ {dia_chi}.",
-    "SĐT: {sdt} (Zalo cùng số) · Người bán: {nguoi_ban} · {cong_ty}, {dia_chi}",
-    "Gọi/Zalo {sdt} ({nguoi_ban}) – qua {dia_chi} xem trực tiếp.",
-    "{cong_ty} – {dia_chi} · Gọi/Zalo: {sdt} · Người bán: {nguoi_ban}",
-    "Cần hỏi nhanh: {sdt} (Zalo) – {nguoi_ban}. Xem máy tại {dia_chi}.",
-    "{cong_ty}, {dia_chi} | SĐT: {sdt} (gọi/Zalo) | {nguoi_ban}",
-    "Inbox hoặc gọi/Zalo {sdt} – {nguoi_ban}, {cong_ty} ({dia_chi})."
+    "{lien_he}"
   ],
 
   "ket_bl_chi_ten": [
-    "— {nguoi_ban}",
-    "Người bán: {nguoi_ban}",
-    "Inbox {nguoi_ban} để được tư vấn thêm.",
-    "{nguoi_ban} – cần hỏi gì cứ nhắn tin.",
-    "Ký tên: {nguoi_ban}",
-    "Cần tư vấn cứ nhắn {nguoi_ban} nhé."
+    ""
   ],
 
   "san_pham": [

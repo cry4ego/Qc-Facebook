@@ -81,7 +81,7 @@ def refilter_found(config):
     """Áp lại bộ lọc cho groups_found.xlsx (khi bộ lọc thay đổi). Trả về số nhóm bị bỏ"""
     found = load_found(config.GROUPS_FOUND_FILE)
     keep = [g for g in found if qualifies(g["group_name"], config)]
-    pd.DataFrame(keep, columns=FOUND_COLUMNS).to_excel(config.GROUPS_FOUND_FILE, index=False)
+    save_found(config.GROUPS_FOUND_FILE, keep)
     return len(found) - len(keep)
 
 
@@ -119,19 +119,51 @@ def search_groups(driver, query, scrolls=4):
     return results
 
 
-def find_groups(driver, config, logger, known_urls):
-    """Tìm nhóm mới theo GROUP_SEARCH_QUERIES, lọc theo từ khóa + số thành viên, lưu GROUPS_FOUND_FILE.
-    Trả về số nhóm mới thêm"""
+def search_queries(config, extra_queries=()):
+    """Từ khóa tìm nhóm: GROUP_SEARCH_QUERIES rồi các từ khóa thêm (do công ty AI thêm), bỏ trùng (không phân biệt dấu / hoa thường)"""
+    queries, seen = [], set()
+    for q in [*config.GROUP_SEARCH_QUERIES, *extra_queries]:
+        key = strip_accents(q)
+        if key.strip() and key not in seen:
+            seen.add(key)
+            queries.append(q)
+    return queries
+
+
+def save_found(path, found):
+    """Ghi groups_found.xlsx qua file tạm rồi os.replace: ghi dở (hết ổ đĩa, bị tắt giữa chừng) không làm hỏng file cũ, và cửa sổ
+    khác đọc file không bao giờ thấy file ghi nửa chừng"""
+    tmp = path + ".tmp.xlsx"
+    try:
+        pd.DataFrame(found, columns=FOUND_COLUMNS).to_excel(tmp, index=False)
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+
+
+def find_groups(driver, config, logger, known_urls, extra_queries=(), stats=None, on_query=None):
+    """Tìm nhóm mới theo GROUP_SEARCH_QUERIES (+ extra_queries), lọc theo từ khóa + số thành viên, lưu GROUPS_FOUND_FILE.
+    stats (dict, tùy chọn) được điền {"truy_van": số từ khóa đã tìm, "loi": số lần lỗi, "co_ket_qua": số từ khóa có kết quả} để
+    người gọi biết việc tìm có thật sự chạy (phiên Facebook hết hạn thì mọi từ khóa trả rỗng). on_query (tùy chọn) được gọi
+    trước mỗi từ khóa. Trả về số nhóm mới thêm"""
     known = {normalize_group_url(u) for u in known_urls}
     found = load_found(config.GROUPS_FOUND_FILE)
     known |= {normalize_group_url(g["group_url"]) for g in found}
     added = 0
-    for q in config.GROUP_SEARCH_QUERIES:
+    stats = stats if stats is not None else {}
+    stats.update(truy_van=0, loi=0, co_ket_qua=0)
+    for q in search_queries(config, extra_queries):
+        if on_query:
+            on_query()
+        stats["truy_van"] += 1
         try:
             results = search_groups(driver, q)
         except Exception as e:
+            stats["loi"] += 1
             logger.error(f"  ✗ Lỗi tìm nhóm '{q}': {str(e).splitlines()[0][:120]}")
             continue
+        stats["co_ket_qua"] += bool(results)
         new = 0
         for r in results:
             name = r["name"]
@@ -155,5 +187,5 @@ def find_groups(driver, config, logger, known_urls):
     # Giữ tối đa MAX_FOUND_GROUPS nhóm: Hà Nội trước, rồi nhóm đông thành viên
     found.sort(key=lambda g: (g["region"] != "Hà Nội", -float(g["members"] or 0)))
     found = found[:config.MAX_FOUND_GROUPS]
-    pd.DataFrame(found, columns=FOUND_COLUMNS).to_excel(config.GROUPS_FOUND_FILE, index=False)
+    save_found(config.GROUPS_FOUND_FILE, found)
     return added

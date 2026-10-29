@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 from config import Config
 from modules.engagement import Engagement
-from modules.filters import (GROUP_FILTERS, POST_FILTERS, PostCandidate, Verdict, run_filters)
+from modules.filters import (GROUP_FILTERS, LY_DO_THU_NGHIEM_KHU_VUC, POST_FILTERS, PostCandidate, Verdict, run_filters)
 from modules.group_finder import min_members
 from modules.intent import DEFAULT_FILE
 
@@ -113,8 +113,17 @@ def test_national_group_needs_hanoi_mentioned():
     v = run_filters(POST_FILTERS, post("Cần tìm màn 27 inch 2K tầm 3tr", hanoi_group=False), cfg())
     assert not v.ok and v.reason.startswith("không ghi khu vực (nhóm toàn quốc")
     assert run_filters(POST_FILTERS, post("Cần tìm màn 27 inch 2K ở Đống Đa", hanoi_group=False), cfg()).ok
-    assert run_filters(POST_FILTERS, post("Cần tìm màn 27 inch 2K", hanoi_group=False),
-                       cfg(REGION_REQUIRED_IN_NATIONAL_GROUPS=False)).ok
+
+
+def test_national_group_trial_comments_posts_without_region_but_still_skips_far_customers():
+    # thử nghiệm 25/10: nhóm toàn quốc cũng bình luận bài không ghi khu vực — lý do có dấu "thử nghiệm" để đo kết quả
+    thu = cfg(REGION_REQUIRED_IN_NATIONAL_GROUPS=False)
+    v = run_filters(POST_FILTERS, post("Cần tìm màn 27 inch 2K tầm 3tr", hanoi_group=False), thu)
+    assert v.ok and LY_DO_THU_NGHIEM_KHU_VUC in v.reason
+    xa = run_filters(POST_FILTERS, post("Cần tìm màn 27 inch ở TPHCM", hanoi_group=False), thu)
+    assert not xa.ok and "khách ở xa" in xa.reason                      # khách ghi rõ ở xa vẫn bị bỏ
+    gan = run_filters(POST_FILTERS, post("Cần tìm màn 27 inch ở Đống Đa", hanoi_group=False), thu)
+    assert gan.ok and LY_DO_THU_NGHIEM_KHU_VUC not in gan.reason        # bài ghi rõ Hà Nội không tính vào thử nghiệm
 
 
 def test_hanoi_group_accepts_posts_without_region():

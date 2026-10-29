@@ -17,6 +17,10 @@ from modules.region import find_regions, load_regions
 from modules.topic import topic
 
 
+# Bài không ghi khu vực ở nhóm toàn quốc được bình luận (REGION_REQUIRED_IN_NATIONAL_GROUPS = False): ghi vào lý do để đo kết quả thử nghiệm
+LY_DO_THU_NGHIEM_KHU_VUC = "không ghi khu vực, nhóm toàn quốc (thử nghiệm)"
+
+
 @dataclass(frozen=True)
 class Verdict:
     ok: bool
@@ -93,7 +97,7 @@ def region_filter(post, config):
         return Verdict(True, "không ghi khu vực, nhóm Hà Nội")
     if config.REGION_REQUIRED_IN_NATIONAL_GROUPS:
         return Verdict(False, "không ghi khu vực (nhóm toàn quốc — chỉ bình luận bài ghi Hà Nội / tỉnh lân cận)")
-    return Verdict(True, "")
+    return Verdict(True, LY_DO_THU_NGHIEM_KHU_VUC)
 
 
 def engagement_filter(post, config):

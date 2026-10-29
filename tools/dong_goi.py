@@ -16,7 +16,7 @@ import tempfile
 from datetime import datetime
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SKIP_DIRS = {".venv", "venv", "chrome_profile", "chrome_profile_quet", "chrome_profile_quet2", "__pycache__", ".git", "logs", ".claude", ".pytest_cache"}
+SKIP_DIRS = {".venv", "venv", "chrome_profile", "chrome_profile_quet", "chrome_profile_quet2", "chrome_profile_khampha", "__pycache__", ".git", "logs", ".claude", ".pytest_cache"}
 SKIP_FILES = {"qc_facebook.db", "qc_facebook.db-wal", "qc_facebook.db-shm",  # CSDL thêm riêng bằng backup
               ".env"}  # khóa bí mật (Gemini…): tự chép tay sang máy mới, không để trong file zip
 

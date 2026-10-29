@@ -87,6 +87,26 @@ def test_comments_full_version_has_contact_safe_version_only_seller_name(tmp_pat
     assert c2.full.endswith("Gọi 0902 189 751 – ASL Workshop")
 
 
+@pytest.mark.parametrize("nguoi_ban, sdt, dia_chi, mong_doi", [
+    ("Hoàng Văn Dũng", "0902 189 751", "64 Cầu Diễn, Hà Nội", "Dũng-0902189751-64 Cầu Diễn"),
+    ("Dũng", "0902.189.751", "64 Cầu Diễn", "Dũng-0902189751-64 Cầu Diễn"),
+    ("  Nguyễn  An ", "(090) 218-9751", "12 Ngõ 5, Cầu Giấy, Hà Nội", "An-0902189751-12 Ngõ 5"),
+    ("", "0902 189 751", "64 Cầu Diễn", ""), ("Dũng", "", "64 Cầu Diễn", ""), ("Dũng", "0902 189 751", "", "")])
+def test_the_short_contact_line_is_first_name_phone_digits_and_street(nguoi_ban, sdt, dia_chi, mong_doi):
+    """26/10/2026: họ tên đầy đủ trong bình luận bị Facebook gợi ý gắn thẻ nhầm người -> chỉ ghi tên gọi, SĐT liền, số nhà + phố"""
+    assert nd.lien_he_gon(nguoi_ban, sdt, dia_chi) == mong_doi
+
+
+def test_the_comment_ending_can_be_the_short_contact_line_and_the_safe_version_can_have_no_ending(tmp_path):
+    cfg = {**CFG, "ket_bl_day_du": ["{lien_he}"], "ket_bl_chi_ten": [""]}
+    content = nd.load(str(write_source(tmp_path / "nd", cfg=cfg)))
+    c1, c2 = nd.comments(content, content.products[0])
+    assert c1.full == "Giá 2.500.000đ, có chân 2.650.000đ.\nBH tháng đầu lỗi 1 đổi 1.\nDũng-0902189751-64 Cầu Diễn"
+    assert "Hoàng" not in c1.full and "Hoàng" not in c1.safe
+    assert c1.safe == "Giá 2.500.000đ, có chân 2.650.000đ.\nBH tháng đầu lỗi 1 đổi 1."          # không câu kết: không thừa dòng trống
+    assert not c2.safe.endswith("\n") and c2.full.endswith("\nDũng-0902189751-64 Cầu Diễn")
+
+
 def test_comment_using_price_with_stand_for_model_without_stand_is_an_error(tmp_path):
     content = nd.load(str(write_source(tmp_path / "nd")))
     with pytest.raises(ValueError, match="gia_co_chan"):

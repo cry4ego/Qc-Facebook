@@ -197,6 +197,7 @@
       <button class="tab" data-tab="decisions">Phân loại bài</button>
       <button class="tab" data-tab="products">Sản phẩm</button>
       <button class="tab" data-tab="lists">Danh sách nhóm</button>
+      <button class="tab" data-tab="congty">Công ty AI</button>
     </nav>
     <div class="grow"></div>
     <button id="unblock" class="warn" hidden>Bỏ chặn ngay</button>
@@ -397,6 +398,10 @@
     </div>
   </form>
 </section>
+
+<section id="tab-congty" hidden>
+  <div id="ct-root"><div class="empty">Đang tải…</div></div>
+</section>
 </main>
 
 <div id="zoom"><img alt=""></div>
@@ -506,9 +511,9 @@ async function loadSafe() {
     ? `<p><span class="b info">Đang dùng cho MỌI nhóm</span> <span class="muted">${esc(s.all_reason)}</span></p>`
     : "";
   const rows = s.groups.map(g => `<tr><td>${esc(g.group_name)}
-      ${g.stop ? '<br><span class="b bad">Ngừng bình luận — từ chối cả bản không SĐT</span>' : ""}</td>
+      ${g.stopped ? `<br><span class="b bad">Tạm ngừng bình luận tới ${esc((g.stop_until || "").slice(0, 16))} — từ chối nhiều bình luận</span>` : ""}</td>
     <td>${esc(g.since)}</td><td>${esc(g.reason)}</td>
-    <td><button data-reset="${esc(g.group_url)}">${g.stop ? "Bình luận lại (bản đầy đủ)" : "Dùng lại bản đầy đủ"}</button></td></tr>`).join("");
+    <td><button data-reset="${esc(g.group_url)}">${g.stopped ? "Bình luận lại ngay" : "Dùng lại bản đầy đủ"}</button></td></tr>`).join("");
   $("#safe").innerHTML = head + (rows || s.all
     ? `<div class="table-wrap"><table><thead><tr><th>Nhóm</th><th>Từ lúc</th><th>Lý do</th><th></th></tr></thead>
        <tbody>${rows || '<tr><td colspan="4" class="muted">—</td></tr>'}</tbody></table></div>
@@ -624,7 +629,7 @@ async function loadLog() {
 $("#pg-logwrap").addEventListener("toggle", loadLog);
 
 // ---------- Tabs ----------
-const TABS = ["log", "decisions", "products", "lists"];
+const TABS = ["log", "decisions", "products", "lists", "congty"];
 function showTab(t) {
   TABS.forEach(x => {
     $(`#tab-${x}`).hidden = x !== t;
@@ -634,6 +639,7 @@ function showTab(t) {
   if (t === "decisions") { loadDecisions(); loadGroupStats(); }
   if (t === "products") loadProducts();
   if (t === "lists") loadLists();
+  if (t === "congty" && typeof loadCongTy === "function") loadCongTy();   // cong_ty/web/app.js nạp ở cuối trang
   if (t === "log") { refresh(); loadProgress(); loadLog(); }
 }
 document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
@@ -1063,5 +1069,6 @@ setInterval(() => {
   else loadSummary();  // trạng thái script trên thanh đầu trang luôn cập nhật
 }, 30000);
 </script>
+<script src="/congty/app.js"></script>
 </body>
 </html>

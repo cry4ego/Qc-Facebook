@@ -349,6 +349,13 @@ class GroupWatcher:
         self.db.add_group_scan(gc_url(g["group_url"]), len(posts), self.avg_interactions())
         return "ok", posts
 
+    def _stop_policy(self):
+        """Khi nào nhóm bị tạm ngừng vì từ chối bình luận (config GROUP_STOP_*; xem db.note_safe_rejection)"""
+        c = self.config
+        return {"min_rejects": getattr(c, "GROUP_STOP_MIN_REJECTS", 3), "window_hours": getattr(c, "GROUP_STOP_WINDOW_HOURS", 72),
+                "min_rate": getattr(c, "GROUP_STOP_MIN_RATE", 0.2), "base_hours": getattr(c, "GROUP_STOP_HOURS", 12),
+                "max_hours": getattr(c, "GROUP_STOP_MAX_HOURS", 96)}
+
     def _blocked_until(self):
         value = self.db.get_setting("blocked_until")
         return datetime.strptime(value, "%Y-%m-%d %H:%M:%S") if value else None
@@ -405,8 +412,15 @@ class GroupWatcher:
                     safe = True
 
                 if status in (REJECTED, REJECTED_DELETED) and safe:
-                    self.db.mark_stop(group_url, group_name, f"Bản không SĐT/địa chỉ cũng bị từ chối (bình luận {i})")
-                    self.logger.warning("  ⛔ Nhóm từ chối cả bản không SĐT/địa chỉ — ngừng bình luận nhóm này")
+                    # MỘT lần bị từ chối không đủ để ngừng cả nhóm (đã làm mất nhóm tốt nhất của shop): chỉ tạm ngừng khi từ chối dày
+                    ngung = self.db.note_safe_rejection(group_url, group_name, f"Bản không SĐT/địa chỉ bị từ chối (bình luận {i})",
+                                                        **self._stop_policy())
+                    if ngung:
+                        self.logger.warning(f"  ⛔ Nhóm từ chối dày ({ngung['bi_tu_choi']}/{ngung['tong']} bình luận bản không "
+                                            f"SĐT/địa chỉ) — tạm ngừng bình luận nhóm này {ngung['gio']} giờ")
+                    else:
+                        self.logger.warning("  ⚠ Bình luận bản không SĐT/địa chỉ bị từ chối — nhóm chưa bị ngừng "
+                                            "(từ chối còn ít so với số bình luận đã gửi)")
                     results.append(status)
                     break
                 if status == PENDING and not safe:
@@ -450,7 +464,9 @@ class GroupWatcher:
                     self.db.update_comment(r["id"], status=REJECTED_DELETED,
                                            detail="bị từ chối sau khi đăng — đã tự xóa khi kiểm tra lại")
                     if r["variant"] == SAFE:
-                        self.db.mark_stop(post["group_url"], post["group_name"], "Bản không SĐT/địa chỉ bị từ chối")
+                        self.db.note_safe_rejection(post["group_url"], post["group_name"],
+                                                    "Bản không SĐT/địa chỉ bị từ chối (phát hiện khi kiểm tra lại)",
+                                                    **self._stop_policy())
                     break
         if deleted and self.db.mark_safe(post["group_url"], post["group_name"], "Bình luận bị từ chối (phát hiện khi kiểm tra lại)"):
             self.logger.warning(f"  ⇢ {post['group_name']}: từ nay dùng bản không SĐT/địa chỉ")

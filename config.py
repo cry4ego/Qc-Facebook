@@ -25,6 +25,8 @@ class Config:
     DB_FILE = os.path.join(DATA_DIR, "qc_facebook.db")                 # mọi hoạt động bình luận (web đọc)
     SCREENSHOT_DIR = os.path.join(DATA_DIR, "screenshots")             # ảnh chụp bài sau khi bình luận
     COMMENT_LOG_FILE = os.path.join(DATA_DIR, "nhat_ky_binh_luan.xlsx")  # bản Excel của nhật ký
+    SU_THAT_FILE = os.path.join(DATA_DIR, "su-that.md")  # sổ sự thật của shop (chủ shop điền) — công ty AI chỉ nói những gì có ở đây
+    BAO_CAO_DIR = os.path.join(DATA_DIR, "bao_cao")      # báo cáo sáng đã lưu (python main.py baocao)
 
     # Chỉ đăng bài/comment vào nhóm thuộc khu vực này (cột region trong groups.xlsx). Để "" = tất cả
     TARGET_REGION = "Hà Nội"
@@ -65,6 +67,14 @@ class Config:
     WATCH_SCROLLS = 60                # số lần cuộn tối đa mỗi nhóm (dừng sớm khi gặp bài cũ hơn MAX_POST_AGE_MINUTES)
     COMMENT_GAP_MIN = 15              # chờ giữa 3 bình luận trong cùng 1 bài, giây
     COMMENT_GAP_MAX = 40
+    # Tạm ngừng NHÓM từ chối bình luận (bản không SĐT/địa chỉ): chỉ khi từ chối DÀY — từ GROUP_STOP_MIN_REJECTS lần trong
+    # GROUP_STOP_WINDOW_HOURS giờ VÀ từ GROUP_STOP_MIN_RATE số bình luận đã gửi vào nhóm. Ngừng GROUP_STOP_HOURS giờ, tái diễn thì
+    # gấp đôi (tối đa GROUP_STOP_MAX_HOURS giờ), hết hạn tự mở lại. (Trước 25/10: 1 lần từ chối = ngừng vĩnh viễn -> mất nhóm tốt nhất)
+    GROUP_STOP_MIN_REJECTS = 3
+    GROUP_STOP_WINDOW_HOURS = 72
+    GROUP_STOP_MIN_RATE = 0.2
+    GROUP_STOP_HOURS = 12
+    GROUP_STOP_MAX_HOURS = 96
     BLOCK_COOLDOWN_HOURS = 6          # Facebook báo chặn -> ngừng tự bình luận trong ... giờ
     VERIFY_AFTER_MINUTES = 60         # sau ... phút mở lại bài kiểm tra bình luận còn hay bị xóa
     VERIFY_PER_RUN = 40               # số bài kiểm tra lại cuối mỗi vòng
@@ -83,6 +93,11 @@ class Config:
     SCAN_USER_DATA_DIR = os.path.join(BASE_DIR, "chrome_profile_quet")  # Chrome của cửa sổ quét (python main.py taophienquet)
     SCAN_WINDOWS = 2                  # số cửa sổ QUÉT chạy cùng lúc (chia nhau các nhóm, không quét trùng); cửa sổ thứ 2
                                       # dùng Chrome chrome_profile_quet2
+    # Cửa sổ KHÁM PHÁ nhóm (python main.py khampha): Chrome riêng chỉ để TÌM nhóm mới (cả từ khóa do công ty AI thêm), không
+    # bình luận / không tham gia nhóm. Có cửa sổ này thì cửa sổ bình luận thôi tự tìm nhóm (khỏi mất thời gian bình luận)
+    DISCOVERY_USER_DATA_DIR = os.path.join(BASE_DIR, "chrome_profile_khampha")   # tạo bằng: python main.py taophienkhampha
+    DISCOVERY_EVERY_HOURS = 12        # cửa sổ khám phá tìm nhóm mới ... giờ 1 lần (cửa sổ bình luận: GROUP_SEARCH_EVERY_HOURS); mỗi
+                                      # lần tìm ~7 từ khóa + tối đa 12 từ khóa do công ty AI thêm: đừng đặt quá dày kẻo Facebook để ý
     SCAN_ACTIVE_MINUTES = 5           # nhóm có khách tìm màn hình / nhiều bài mỗi ngày: quét lại mỗi ... phút
     SCAN_ACTIVE_POSTS_PER_DAY = 100   # nhóm có từ ... bài mới/ngày (trang Giới thiệu) tính là nhóm hoạt động mạnh
     SCAN_OVERLAP_MINUTES = 10         # quét lại chỉ xét bài đăng sau lần quét trước + ... phút dự phòng (nên quét rất nhanh)
@@ -126,8 +141,11 @@ class Config:
     REGION_FILE = os.path.join(DATA_DIR, "khu_vuc.txt")
     # Nhóm toàn quốc (tên nhóm không có "Hà Nội", vd MÀN HÌNH MÁY TÍNH): chỉ bình luận bài GHI RÕ Hà Nội / tỉnh lân cận
     # (bài không ghi khu vực ở nhóm toàn quốc ~ một nửa là khách tỉnh xa). Nhóm Hà Nội: bài không ghi khu vực vẫn bình luận.
-    # False = nhóm toàn quốc cũng bình luận bài không ghi khu vực
-    REGION_REQUIRED_IN_NATIONAL_GROUPS = True
+    # False = nhóm toàn quốc cũng bình luận bài không ghi khu vực (bài ghi rõ khu vực XA vẫn bị bỏ).
+    # THỬ NGHIỆM 25/10/2026 -> xem lại ngày 28/10 (chủ shop: "thử 3 ngày rồi xem lại"): trước đó ~60 bài MUA / 7 ngày (~8 bài mỗi
+    # ngày) ở nhóm toàn quốc bị bỏ vì không ghi khu vực. Các bài thuộc diện thử nghiệm có lý do "… nhóm toàn quốc (thử nghiệm)" trong
+    # bảng post_decisions; xem kết quả: python tools/thu_nghiem_khu_vuc.py. Không ổn thì đặt lại True.
+    REGION_REQUIRED_IN_NATIONAL_GROUPS = False
     # Bài người cần MUA thì bình luận CÀNG SỚM CÀNG TỐT, không chờ có like / bình luận (bài mới 0 tương tác là cơ hội
     # tốt nhất — chưa shop nào trả lời) -> 0 = không xét tương tác, cũng không tốn công đọc số tương tác.
     POST_MIN_ENGAGEMENT = 0           # chỉ bình luận bài có điểm tương tác từ ... trở lên; 0 = không xét
@@ -138,6 +156,18 @@ class Config:
     INTENT_AI = True                  # True = bài KHÔNG XÁC ĐỊNH theo từ khóa thì hỏi Gemini MUA hay BÁN (cần GEMINI_API_KEY)
     GEMINI_MODEL = "gemini-flash-lite-latest"   # model nhanh, rẻ; tên "latest" tự dùng bản mới nhất
     GEMINI_MAX_CALLS_PER_DAY = 500    # tối đa ... lần hỏi Gemini mỗi ngày (mỗi nội dung chỉ hỏi 1 lần, có lưu lại)
+
+    # ===== Công ty AI, Giai đoạn 2: họp sáng + đề xuất (chi phí 0đ, chế độ quan sát — chưa tự làm gì) =====
+    # AI miễn phí thử lần lượt Gemini -> Groq -> Ollama; nguồn hết lượt / lỗi thì sang nguồn sau; không nguồn nào thì họp bằng
+    # luật. Lưu ý: lượt Gemini miễn phí DÙNG CHUNG với việc chấm MUA / BÁN ở trên.
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")   # tùy chọn (console.groq.com, miễn phí): dự phòng khi Gemini hết lượt
+    GROQ_MODEL = "llama-3.3-70b-versatile"
+    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL")   # tùy chọn: mô hình chạy ngay trên máy bạn (vd qwen2.5:7b); trống = không dùng
+    OLLAMA_URL = "http://127.0.0.1:11434/v1/chat/completions"
+    CONG_TY_AI_TRAN = {"gemini": 40, "groq": 40, "ollama": 200}   # lượt AI tối đa mỗi ngày CHO CÔNG TY, theo từng nguồn
+    CONG_TY_GIO_HOP = 7               # họp sáng lúc ... giờ (lỡ giờ vì máy tắt thì họp ngay khi máy bật)
+    CONG_TY_DE_XUAT_TOI_DA = 3        # tối đa ... đề xuất chờ chủ shop duyệt cùng lúc
+    CONG_TY_NGAY_QUAN_SAT = 7         # chế độ quan sát kéo dài ... ngày đầu
 
     SCHEDULE_WINDOW_MINUTES = 60  # bài trong lịch bị trễ (máy bận) tối đa ... phút vẫn đăng bù
 

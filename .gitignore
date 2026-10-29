@@ -4,6 +4,7 @@ venv/
 chrome_profile/
 chrome_profile_quet/
 chrome_profile_quet2/
+chrome_profile_khampha/
 .env
 __pycache__/
 *.pyc
@@ -18,6 +19,21 @@ data/qc_facebook_backup_*.db
 data/qc_facebook.db
 data/nhat_ky_binh_luan.xlsx
 data/screenshots/
+
+# Công ty AI: báo cáo sáng (có số khách / doanh thu thật) và sổ sự thật (SĐT, chính sách của shop) — chỉ giữ trên máy shop;
+# file su-that.md tự tạo lại bản mẫu nếu chưa có
+data/bao_cao/
+data/su-that.md
+
+# Bản sao lưu CSDL trước khi đổi nội dung (28/10/2026) — chứa SĐT + bài của khách; bộ dữ liệu đánh giá dựng từ bài thật của khách
+data/sao_luu/
+danh_gia/du_lieu/
+**/Tai-lieu/
+# Dữ liệu trạng thái chạy (đổi sau mỗi vòng) — không đưa vào lịch sử git
+data/post_history.json
+data/schedule_done.json
+data/group_status.xlsx
+data/groups_found.xlsx
 
 # Nhật ký chạy, file tạm
 logs/

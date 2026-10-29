@@ -31,7 +31,7 @@ RED = RGBColor(0xD0, 0x10, 0x2E)
 GREY = RGBColor(0x6B, 0x76, 0x8A)
 FONT = "Arial"
 CONTACT_KEYS = ("cong_ty", "nguoi_ban", "sdt", "zalo", "dia_chi")
-SO_BL, SO_BD = 30, 10  # số bình luận / bài đăng mong muốn cho mỗi mã
+SO_BL, SO_BD = 12, 10  # số bình luận / bài đăng mong muốn cho mỗi mã (28/10/2026: bình luận ngắn, 12 kiểu trình bày)
 # Tài liệu không dùng icon (emoji, ✅ ✔ ❓ ☎ …); gạch đầu dòng viết bằng "- ".
 ICON = re.compile("[\U0001F000-\U0001FAFF☀-➿⬀-⯿️↕]")
 
@@ -81,8 +81,15 @@ def digits(s):
     return re.sub(r"\D", "", s)
 
 
+def lien_he_gon():
+    """Dòng liên hệ gọn của bình luận, vd Dũng-0902189751-64 Cầu Diễn (tên gọi - SĐT liền - số nhà + phố); cùng cách dựng với
+    modules/noi_dung.lien_he_gon của bot. Họ tên đầy đủ không ghi vì Facebook gợi ý gắn thẻ nhầm người."""
+    ten, so, pho = CFG["nguoi_ban"].split(), digits(CFG["sdt"]), " ".join(CFG["dia_chi"].split(",")[0].split())
+    return f"{ten[-1]}-{so}-{pho}" if ten and so and pho else ""
+
+
 def load_products():
-    contact = {k: CFG[k] for k in CONTACT_KEYS}
+    contact = {**{k: CFG[k] for k in CONTACT_KEYS}, "lien_he": lien_he_gon()}
     products = []
     for p_idx, sp in enumerate(CFG["san_pham"]):
         base = {k: sp.get(k) for k in ("ten", "gia", "gia_co_chan", "phu_thu_chan")}

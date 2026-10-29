@@ -59,7 +59,9 @@ CREATE TABLE IF NOT EXISTS safe_groups (   -- nhóm đã từ chối bình luậ
     group_name TEXT,
     since      TEXT,
     reason     TEXT,
-    stop       INTEGER DEFAULT 0  -- 1 = bản không SĐT/địa chỉ cũng bị từ chối -> ngừng bình luận nhóm này
+    stop       INTEGER DEFAULT 0, -- 1 = bản không SĐT/địa chỉ bị từ chối dày -> TẠM ngừng bình luận nhóm này (tới stop_until)
+    stop_until TEXT,              -- hết hạn ngừng (YYYY-MM-DD HH:MM:SS); NULL (bản ghi cũ) = since + STOP_GIO_MAC_DINH giờ
+    stop_count INTEGER DEFAULT 0  -- số lần ngừng liên tiếp (trong 7 ngày): mỗi lần tái diễn ngừng lâu gấp đôi
 );
 CREATE TABLE IF NOT EXISTS group_join (    -- kết quả tự tham gia nhóm
     group_url  TEXT PRIMARY KEY,
@@ -200,6 +202,9 @@ COMMENT = "Bình luận"
 COMMENT_DRY = "Sẽ bình luận (chạy thử)"   # chạy thử (python main.py thuquet): đạt mọi bộ lọc nhưng KHÔNG bình luận
 SKIP = "Bỏ qua"
 
+# Nhóm bị tạm ngừng mà không ghi hạn (bản ghi do bản cũ tạo) coi là ngừng ngần này giờ kể từ lúc ngừng
+STOP_GIO_MAC_DINH = 12
+
 # Bản nội dung bình luận
 FULL = "Đầy đủ"
 SAFE = "Không SĐT/địa chỉ"
@@ -230,6 +235,12 @@ class Database:
             cols = [r["name"] for r in c.execute("PRAGMA table_info(safe_groups)")]
             if "stop" not in cols:
                 c.execute("ALTER TABLE safe_groups ADD COLUMN stop INTEGER DEFAULT 0")
+            if "stop_until" not in cols:
+                c.execute("ALTER TABLE safe_groups ADD COLUMN stop_until TEXT")
+                c.execute("ALTER TABLE safe_groups ADD COLUMN stop_count INTEGER DEFAULT 0")
+                # trước 25/10 ngừng nhóm là VĨNH VIỄN: nay mọi nhóm đang bị ngừng chỉ còn ngừng STOP_GIO_MAC_DINH giờ kể từ lúc ngừng
+                c.execute("UPDATE safe_groups SET stop_until = datetime(since, ?), stop_count = 1 WHERE stop = 1",
+                          (f"+{STOP_GIO_MAC_DINH} hours",))
             cols = [r["name"] for r in c.execute("PRAGMA table_info(products)")]
             if cols and "new_price" not in cols:
                 c.execute("ALTER TABLE products ADD COLUMN new_price TEXT")
@@ -310,16 +321,44 @@ class Database:
                      (group_url, group_name, now_str(), reason))
         return True
 
-    def mark_stop(self, group_url, group_name, reason):
-        """Bản không SĐT/địa chỉ cũng bị từ chối -> ngừng bình luận nhóm này"""
+    def note_safe_rejection(self, group_url, group_name, reason, min_rejects=3, window_hours=72, min_rate=0.2,
+                            base_hours=12, max_hours=96, now=None):
+        """Bản không SĐT/địa chỉ bị nhóm từ chối. MỘT lần từ chối KHÔNG đủ để ngừng nhóm (trước 25/10 làm thế đã ngừng vĩnh viễn
+        nhóm tốt nhất của shop vì 1/194 bình luận bị từ chối, kéo theo 26 bài khách bị bỏ). Chỉ ngừng khi từ chối DÀY: từ
+        `min_rejects` lần trong `window_hours` giờ gần nhất VÀ chiếm từ `min_rate` số bình luận bản không SĐT đã gửi vào nhóm
+        trong khoảng đó. Ngừng có thời hạn: base_hours giờ, mỗi lần tái diễn (trong 7 ngày) gấp đôi, tối đa max_hours giờ; hết hạn
+        nhóm tự mở lại. Trả về {"gio", "bi_tu_choi", "tong", "lan"} nếu vừa ngừng, None nếu chưa"""
         if not group_url:
-            return
-        self.execute("INSERT INTO safe_groups (group_url, group_name, since, reason, stop) VALUES (?, ?, ?, ?, 1) "
-                     "ON CONFLICT(group_url) DO UPDATE SET stop = 1, reason = excluded.reason, since = excluded.since",
-                     (group_url, group_name, now_str(), reason))
+            return None
+        now = now or datetime.now()
+        tu = (now - timedelta(hours=window_hours)).strftime("%Y-%m-%d %H:%M:%S")
+        dem = self.query(
+            "SELECT SUM(c.status LIKE ?) AS bi_tu_choi, COUNT(*) AS tong FROM comments c JOIN posts p ON p.id = c.post_id "
+            "WHERE p.group_url = ? AND c.variant = ? AND c.sent_at >= ?", (REJECTED + "%", group_url, SAFE, tu))[0]
+        bi_tu_choi, tong = dem["bi_tu_choi"] or 0, dem["tong"] or 0
+        if bi_tu_choi < min_rejects or bi_tu_choi / tong < min_rate:
+            return None
+        truoc = self.query("SELECT since, stop, stop_count FROM safe_groups WHERE group_url = ?", (group_url,))
+        lan = 1
+        if truoc and truoc[0]["stop"] and truoc[0]["stop_count"] and truoc[0]["since"] \
+                and datetime.strptime(truoc[0]["since"], "%Y-%m-%d %H:%M:%S") >= now - timedelta(days=7):
+            lan = truoc[0]["stop_count"] + 1
+        gio = min(base_hours * 2 ** (lan - 1), max_hours)
+        self.execute(
+            "INSERT INTO safe_groups (group_url, group_name, since, reason, stop, stop_until, stop_count) "
+            "VALUES (?, ?, ?, ?, 1, ?, ?) ON CONFLICT(group_url) DO UPDATE SET stop = 1, reason = excluded.reason, "
+            "since = excluded.since, stop_until = excluded.stop_until, stop_count = excluded.stop_count",
+            (group_url, group_name, now.strftime("%Y-%m-%d %H:%M:%S"), reason,
+             (now + timedelta(hours=gio)).strftime("%Y-%m-%d %H:%M:%S"), lan))
+        return {"gio": gio, "bi_tu_choi": bi_tu_choi, "tong": tong, "lan": lan}
 
-    def is_stopped(self, group_url):
-        return bool(self.query("SELECT 1 FROM safe_groups WHERE group_url = ? AND stop = 1", (group_url,)))
+    def is_stopped(self, group_url, now=None):
+        """Nhóm đang bị TẠM ngừng bình luận (chưa hết hạn)? Bản ghi ngừng không có hạn (do bản cũ ghi) coi là ngừng
+        STOP_GIO_MAC_DINH giờ kể từ lúc ngừng"""
+        now = (now or datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
+        return bool(self.query(
+            "SELECT 1 FROM safe_groups WHERE group_url = ? AND stop = 1 "
+            f"AND COALESCE(stop_until, datetime(since, '+{STOP_GIO_MAC_DINH} hours')) > ?", (group_url, now)))
 
     # ---- tham gia nhóm ----
     def get_join(self, group_url):

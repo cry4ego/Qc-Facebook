@@ -124,10 +124,22 @@ def test_with_threshold_zero_fresh_buy_posts_are_selected_immediately(env):
 
 def test_national_group_only_selects_posts_that_mention_hanoi(env):
     env.cfg.POST_MIN_ENGAGEMENT = 0
+    env.cfg.REGION_REQUIRED_IN_NATIONAL_GROUPS = True               # cấu hình thật đang THỬ NGHIỆM False (xem test dưới)
     gw, _ = env.make()
     _, posts = gw.scan_group(NATIONAL)
     assert [p["url"][-3:] for p in posts] == ["/1/"]                # "… ở Cầu Giấy" — bài không ghi khu vực bị bỏ
     assert "nhóm toàn quốc" in decisions(env.db)["Tìm màn 24 inch tầm "]["reason"]
+
+
+def test_national_group_trial_also_selects_posts_without_region_and_tags_them(env):
+    env.cfg.POST_MIN_ENGAGEMENT = 0
+    env.cfg.REGION_REQUIRED_IN_NATIONAL_GROUPS = False
+    gw, _ = env.make()
+    _, posts = gw.scan_group(NATIONAL)
+    assert sorted(p["url"][-3:] for p in posts) == ["/1/", "/3/"]    # cả bài "Tìm màn 24 inch tầm 1tr" không ghi khu vực
+    d = decisions(env.db)
+    assert "không ghi khu vực, nhóm toàn quốc (thử nghiệm)" in d["Tìm màn 24 inch tầm "]["reason"]
+    assert "(thử nghiệm)" not in d["Cần tìm màn 27 inch "]["reason"]  # bài ghi rõ Cầu Giấy không tính vào thử nghiệm
 
 
 def test_seeing_the_same_posts_again_does_not_duplicate_log(env):

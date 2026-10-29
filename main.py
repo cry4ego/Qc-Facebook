@@ -29,6 +29,7 @@ from modules.products import load_pool, pick_pool
 from modules.watcher import GroupWatcher, daily_cap_reached, minutes_to_tomorrow
 from modules.db import Database
 from modules import browser
+from modules import group_discovery
 from modules import noi_dung
 from modules.scanner import Scanner
 from modules.queue_runner import QueueRunner
@@ -201,23 +202,95 @@ def load_target_groups():
     return rank_by_yield(groups, db.group_yields(Config.YIELD_DAYS), Config)
 
 
-def maybe_find_groups(driver, force=False):
-    """Tìm nhóm mới theo từ khóa, GROUP_SEARCH_EVERY_HOURS giờ 1 lần (lưu groups_found.xlsx)"""
-    last = db.get_setting("groups_searched_at")
-    if not force and last and datetime.now() - datetime.strptime(last, "%Y-%m-%d %H:%M:%S") \
-            < timedelta(hours=Config.GROUP_SEARCH_EVERY_HOURS):
+def maybe_find_groups(driver, force=False, every_hours=None, progress=None, on_query=None):
+    """Tìm nhóm mới theo từ khóa (GROUP_SEARCH_QUERIES + từ khóa do công ty AI thêm), every_hours giờ 1 lần (mặc định
+    GROUP_SEARCH_EVERY_HOURS; lưu groups_found.xlsx). progress: hàm ghi tiến trình (mặc định của cửa sổ bình luận); on_query:
+    gọi trước mỗi từ khóa. Trả về True (tìm được) / False (tìm hỏng: lỗi hoặc không từ khóa nào ra kết quả — 1 giờ sau thử lại) /
+    None (chưa tới giờ). Logic lịch nằm ở modules/group_discovery.py (có test)"""
+    def tim(drv, known, extra, stats, truoc_moi_tu_khoa):
+        return find_groups(drv, Config, logger, known, extra_queries=extra, stats=stats, on_query=truoc_moi_tu_khoa)
+
+    def da_biet():     # + nhóm bạn đã xóa khỏi danh sách tự tìm trên web: không thêm lại
+        return [g['group_url'] for g in load_groups(db, Config, enabled_only=False)] + list(db.removed_urls())
+
+    def tu_khoa_ai():
+        from cong_ty import nhom_ai
+        return nhom_ai.tu_khoa_dang_dung(db)
+
+    return group_discovery.chay_tim(
+        db, logger, driver, tim, da_biet, tu_khoa_ai,
+        every_hours=Config.GROUP_SEARCH_EVERY_HOURS if every_hours is None else every_hours,
+        force=force, progress=progress or set_progress, on_query=on_query)
+
+
+DISCOVERY_POLL_SECONDS = 300          # cửa sổ KHÁM PHÁ: cứ ... giây xem đã tới lúc tìm nhóm chưa
+
+
+def discovery_window_alive():
+    """Cửa sổ KHÁM PHÁ nhóm đang chạy và việc tìm của nó khỏe (nhịp tim còn mới)? Khi có, cửa sổ bình luận không tự tìm nhóm nữa
+    (để khỏi mất thời gian bình luận); khi cửa sổ khám phá tắt hoặc tìm hỏng thì cửa sổ bình luận tự tìm lại như cũ"""
+    return group_discovery.con_song(db)
+
+
+def task_discover():
+    """Cửa sổ KHÁM PHÁ nhóm (chạy ngầm, Chrome riêng chrome_profile_khampha): cứ DISCOVERY_EVERY_HOURS giờ tìm nhóm mới theo từ
+    khóa (cả từ khóa do công ty AI thêm) -> groups_found.xlsx. Chỉ TÌM: không bình luận, không đăng, không bấm tham gia nhóm
+    (cửa sổ bình luận lo tham gia nhóm như cũ). Chrome hỏng thì tự mở lại"""
+    profile = Config.DISCOVERY_USER_DATA_DIR
+    if not os.path.isdir(profile):
+        logger.error("✗ Chưa có Chrome cho cửa sổ khám phá nhóm — đóng cửa sổ \"QC-Facebook\" rồi chạy: "
+                     "python main.py taophienkhampha")
         return
-    logger.info("=== TÌM NHÓM MỚI THEO TỪ KHÓA ===")
-    set_progress(phase="Tìm nhóm mới theo từ khóa", step="Tìm trên Facebook theo GROUP_SEARCH_QUERIES",
-                 post_text="", post_url="")
+    logger.info(f"🧭 Cửa sổ KHÁM PHÁ nhóm: tìm nhóm mới {Config.DISCOVERY_EVERY_HOURS} giờ 1 lần (cả từ khóa do công ty AI thêm); "
+                "chỉ tìm, không bình luận")
+    nhip = lambda: group_discovery.nhip(db)
+    while True:
+        driver = None
+        khoe = True       # lần tìm gần nhất không hỏng? Hỏng thì thôi báo "còn sống" để cửa sổ bình luận tự tìm nhóm thay
+        try:
+            driver = create_driver(profile)
+            if not login_facebook(driver):
+                logger.error("✗ [Khám phá] Chưa đăng nhập Facebook — chạy: python main.py login khampha")
+                return
+            while True:
+                _ = driver.current_url        # Chrome hỏng thì ném lỗi ở đây -> mở lại Chrome trước khi tìm
+                ket_qua = None if db.is_paused() else maybe_find_groups(
+                    driver, every_hours=Config.DISCOVERY_EVERY_HOURS, progress=lambda **fields: None, on_query=nhip)
+                if ket_qua is not None:
+                    khoe = ket_qua
+                if khoe:
+                    nhip()
+                time.sleep(DISCOVERY_POLL_SECONDS)
+        except Exception:
+            logger.exception("[Khám phá] Lỗi — 60 giây sau mở lại Chrome")
+            time.sleep(60)
+        finally:
+            if driver:
+                _quit(driver)
+
+
+def task_make_discovery_profile():
+    """Tạo Chrome cho cửa sổ KHÁM PHÁ nhóm: chép phiên đăng nhập từ chrome_profile (khỏi đăng nhập lại).
+    Cửa sổ bình luận (Chrome dùng chrome_profile) và cửa sổ khám phá phải đang tắt"""
+    profile = Config.DISCOVERY_USER_DATA_DIR
+    if browser.profile_in_use(Config.USER_DATA_DIR):
+        logger.error("✗ Chrome của bot đang chạy — đóng cửa sổ \"QC-Facebook\" trước rồi chạy lại lệnh này")
+        return False
+    if browser.profile_in_use(profile):
+        logger.error("✗ Cửa sổ khám phá đang chạy — đóng cửa sổ \"QC-Facebook Kham Pha\" trước rồi chạy lại lệnh này")
+        return False
+    logger.info(f"Đang chép phiên đăng nhập sang {os.path.basename(profile)}/ …")
+    browser.copy_profile(Config.USER_DATA_DIR, profile)
+    driver = create_driver(profile)
     try:
-        # + nhóm bạn đã xóa khỏi danh sách tự tìm trên web: không thêm lại
-        known = [g['group_url'] for g in load_groups(db, Config, enabled_only=False)] + list(db.removed_urls())
-        n = find_groups(driver, Config, logger, known)
-        db.set_setting("groups_searched_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        logger.info(f"Đã thêm {n} nhóm mới vào groups_found.xlsx — vòng sau tự tham gia & bình luận")
-    except Exception as e:
-        logger.error(f"Lỗi tìm nhóm mới: {e}")
+        logged_in = login_facebook(driver)
+    finally:
+        driver.quit()
+    if logged_in:
+        logger.info("✓ Cửa sổ khám phá đã đăng nhập Facebook — bấm đúp chay-ngam.bat để chạy")
+    else:
+        logger.error("✗ Chép xong nhưng chưa đăng nhập được — chạy: python main.py login khampha")
+    return logged_in
 
 
 def task_find_groups():
@@ -497,6 +570,51 @@ def task_import_content(src):
         logger.info(f"  ✓ {name}: {n} bình luận, {n_posts} bài đăng")
 
 
+def task_bao_cao(ngay_chu=None):
+    """Báo cáo sáng của công ty AI (tính bằng code, không gọi AI): in ra màn hình và lưu data/bao_cao/<ngày>.md"""
+    from datetime import date
+    from cong_ty import bao_cao, su_that
+    try:
+        ngay = datetime.strptime(ngay_chu, "%Y-%m-%d").date() if ngay_chu else date.today()
+    except ValueError:
+        print("Ngày phải có dạng năm-tháng-ngày, ví dụ: python main.py baocao 2026-10-24")
+        return
+    try:
+        su_that.tao_mau_neu_chua_co(Config.SU_THAT_FILE)
+        bc = bao_cao.tao_bao_cao(db, Config, Config.SU_THAT_FILE, ngay, bay_gio=datetime.now())
+    except ValueError as e:   # ngày quá xa
+        print(e)
+        return
+    duong_dan = bao_cao.luu(bc, Config.BAO_CAO_DIR)   # lưu trước khi in: console cũ lỗi mã hóa cũng không mất báo cáo
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    print(bc["van_ban"])
+    print(f"Đã lưu: {duong_dan}")
+
+
+def task_hop(lai=False):
+    """Họp sáng của công ty AI ngay bây giờ (AI miễn phí, hết lượt thì họp bằng luật). Hôm nay đã họp thì chỉ cho xem kết
+    quả, trừ khi lai=True. Đề xuất chờ bạn duyệt ở tab "Công ty AI" trên web"""
+    from datetime import date
+    from cong_ty import ai, hop
+    bo_ai = ai.tao_bo_ai(db, Config, logger=logger)
+    kq = hop.hop(db, Config, Config.SU_THAT_FILE, date.today(), bo_ai, thu_muc_bao_cao=Config.BAO_CAO_DIR,
+                 bay_gio=datetime.now(), ep=lai, logger=logger, dong_ho=datetime.now)
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    print(("Hôm nay đã họp rồi" if kq["da_co"] else "Họp xong") + f" (cuộc họp #{kq['id']}): {kq['so_cho_duyet']} đề xuất "
+          f"chờ bạn duyệt, {kq['so_hoan']} hoãn, {kq['so_bi_chan']} bị Kiểm soát rủi ro chặn")
+    print(kq["tom_tat"])
+    print('Xem và duyệt ở tab "Công ty AI" trên web (http://127.0.0.1:5000/#congty)')
+
+
+def task_hop_ngam():
+    """Cửa sổ họp nền: mỗi sáng họp một lần (CONG_TY_GIO_HOP giờ), và họp ngay khi bạn bấm "Họp ngay" trên web"""
+    from cong_ty import lich
+    logger.info(f"Cửa sổ họp sáng của công ty AI: họp mỗi ngày lúc {Config.CONG_TY_GIO_HOP}h (hoặc khi bạn bấm Họp ngay)")
+    lich.vong_lap(db, Config.CONG_TY_GIO_HOP, task_hop)
+
+
 def task_group_stats():
     """Đọc lại ngay số thành viên / bài mỗi ngày của mọi nhóm đang dùng (bỏ qua cache) và cho biết nhóm nào đạt"""
     from modules.filters import GROUP_FILTERS, run_filters
@@ -606,7 +724,7 @@ def run_queue_scheduler():
             commenter = FacebookCommenter(driver, Config)
             runner = QueueRunner(GroupWatcher(driver, Config, logger, db), commenter, pick_comments, Config, logger, db,
                                  between=lambda: post_due(driver),
-                                 housekeeping_extra=lambda: maybe_find_groups(driver))
+                                 housekeeping_extra=lambda: None if discovery_window_alive() else maybe_find_groups(driver))
             while True:
                 runner.step(lambda: daily_cap_reached(db, Config), blocked_until, minutes_to_tomorrow)
         except Exception:
@@ -663,6 +781,10 @@ USAGE = """Cách dùng:
   python main.py quet [2]   Cửa sổ QUÉT số 1 / 2 (chạy song song, Chrome riêng): tìm bài mới liên tục -> hàng chờ
   python main.py taophienquet   Tạo Chrome cho cửa sổ quét (chép phiên đăng nhập; tắt cửa sổ QC-Facebook trước)
   python main.py login quet [2] Đăng nhập tay cho Chrome của cửa sổ quét số 1 / 2 (nếu taophienquet báo chưa đăng nhập được)
+  python main.py khampha    Cửa sổ KHÁM PHÁ nhóm (chạy ngầm, Chrome riêng): cứ vài giờ tìm nhóm mới theo từ khóa, kể cả từ khóa
+                            công ty AI thêm; chỉ tìm, không bình luận. Cửa sổ bình luận lo tham gia nhóm
+  python main.py taophienkhampha  Tạo Chrome cho cửa sổ khám phá (chép phiên đăng nhập; tắt cửa sổ QC-Facebook trước)
+  python main.py login khampha    Đăng nhập tay cho Chrome của cửa sổ khám phá (nếu taophienkhampha báo chưa đăng nhập được)
   python main.py watch      Chạy đúng 1 vòng: từng nhóm quét & bình luận hết bài mới, cuối vòng tự tham gia nhóm
   python web.py             Mở web quản lý: http://127.0.0.1:5000
   python main.py login      Mở Chrome để đăng nhập thủ công lần đầu
@@ -677,6 +799,11 @@ USAGE = """Cách dùng:
                                   trên web, tab "Phân loại bài"
   python main.py phanloai "nội dung bài"   Xem 1 câu được chấm MUA / BÁN / KHÔNG XÁC ĐỊNH (thử từ khóa)
   python main.py capnhatnhom  Đọc lại ngay số thành viên của mọi nhóm (bình thường tự đọc lại sau 24 giờ)
+  python main.py baocao [YYYY-MM-DD]  Báo cáo sáng của công ty AI (tính bằng code, 0đ): in ra màn hình + lưu data/bao_cao/;
+                              cũng xem được ở tab "Công ty AI" trên web
+  python main.py hop [lai]    Họp sáng của công ty AI ngay (AI miễn phí, hết lượt thì họp bằng luật); "lai" = họp dù hôm nay
+                              đã họp. Đề xuất chờ bạn duyệt ở tab "Công ty AI" trên web
+  python main.py hopngam      Cửa sổ họp nền: mỗi sáng họp một lần, và họp ngay khi bạn bấm "Họp ngay" trên web
   python main.py noidung ["thư mục"]  Nạp nội dung bán hàng (bình luận, bài đăng, ảnh) từ thư mục nguồn
                               (mặc định "Ảnh Màn-20-10") vào data/noi_dung + data/images + CSDL
 """
@@ -694,7 +821,8 @@ if __name__ == "__main__":
             set_progress(phase="Đã tắt", step="", pid=None)
     elif mode == "login":
         n = int(sys.argv[3]) if len(sys.argv) > 3 and sys.argv[3].isdigit() else 1
-        task_manual_login(scan_profile(n) if sys.argv[2:3] == ["quet"] else None)
+        task_manual_login(scan_profile(n) if sys.argv[2:3] == ["quet"]
+                          else Config.DISCOVERY_USER_DATA_DIR if sys.argv[2:3] == ["khampha"] else None)
     elif mode == "quet":
         n = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2].isdigit() else 1
         try:
@@ -703,6 +831,10 @@ if __name__ == "__main__":
             db.set_scan_progress(n, phase="Đã tắt", step="", group_name="")
     elif mode == "taophienquet":
         task_make_scan_profile()
+    elif mode == "khampha":
+        task_discover()
+    elif mode == "taophienkhampha":
+        task_make_discovery_profile()
     elif mode == "join":
         task_join_groups()
     elif mode == "test":
@@ -727,5 +859,11 @@ if __name__ == "__main__":
         task_import_content(" ".join(sys.argv[2:]) or os.path.join(Config.BASE_DIR, "Ảnh Màn-20-10"))
     elif mode == "capnhatnhom":
         task_group_stats()
+    elif mode == "baocao":
+        task_bao_cao(sys.argv[2] if len(sys.argv) > 2 else None)
+    elif mode == "hop":
+        task_hop(lai=sys.argv[2:3] == ["lai"])
+    elif mode == "hopngam":
+        task_hop_ngam()
     else:
         print(USAGE)

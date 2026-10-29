@@ -56,7 +56,7 @@ class QueueRunner:
             self.db.set_queue_status(item["id"], Q_SKIPPED, "đã bình luận trước đó")
             return "skip"
         if self.db.is_stopped(item["group_url"]):
-            self.db.set_queue_status(item["id"], Q_SKIPPED, "nhóm từ chối cả bản không SĐT/địa chỉ — ngừng nhóm")
+            self.db.set_queue_status(item["id"], Q_SKIPPED, "nhóm đang tạm ngừng vì từ chối nhiều bình luận (ngừng nhóm có hạn, tự mở lại)")
             return "skip"
         pool = self.pick_comments(group)
         if not pool:
