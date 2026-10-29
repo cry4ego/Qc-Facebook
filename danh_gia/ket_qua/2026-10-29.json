@@ -1,0 +1,393 @@
+{
+ "phan_loai": {
+  "dong_thuan": {
+   "chu_de": {
+    "khop": 0.9907692307692307,
+    "kappa": 0.9828130233214054
+   },
+   "y_dinh": {
+    "khop": 0.9661538461538461,
+    "kappa": 0.9380609168716865
+   },
+   "khu_vuc": {
+    "khop": 0.9938461538461538,
+    "kappa": 0.9886294061051342
+   },
+   "ca_ba": 0.9507692307692308
+  },
+  "kich_ban": {
+   "vang": {
+    "so_mau": 309,
+    "quy_mo": 18599.0,
+    "recall_nen": [
+     0.9140307748977354,
+     [
+      0.8194343116897693,
+      0.9882481996485633
+     ]
+    ],
+    "precision_nen": [
+     0.8541536386664322,
+     [
+      0.748160645256081,
+      0.9449025816950346
+     ]
+    ],
+    "so_khach_dung": "674 (95%: 569–775)",
+    "so_bo_sot": "58 (95%: 7–129)",
+    "so_binh_luan_nham": "105 (95%: 38–182)",
+    "bo_sot_moi_ngay": 2.519915717816767,
+    "nguyen_nhan_bo_sot": {
+     "hệ thống coi là bài BÁN": 45.93103448275862,
+     "ý định không xác định (Gemini cũng không chắc / hết lượt)": 12.027027027027026
+    },
+    "chu_de_recall": 0.947530011248602,
+    "chu_de_precision": 0.9116780808861029,
+    "chu_de_nham": {
+     "man_hinh->man_hinh": 4608.53269887925,
+     "man_hinh->pc": 0,
+     "man_hinh->laptop": 255.2,
+     "man_hinh->khac": 0,
+     "pc->man_hinh": 225.27143104643105,
+     "pc->pc": 2980.7,
+     "pc->laptop": 972.3,
+     "pc->khac": 605.6666666666666,
+     "laptop->man_hinh": 85.56629089301504,
+     "laptop->pc": 374.1333333333333,
+     "laptop->laptop": 5850.833333333333,
+     "laptop->khac": 613.1666666666666,
+     "khac->man_hinh": 135.6295791813033,
+     "khac->pc": 302.8333333333333,
+     "khac->laptop": 0,
+     "khac->khac": 1589.1666666666665
+    },
+    "y_dinh_recall_mua": 0.9052138197954577,
+    "y_dinh_precision_mua": 0.912267242627924,
+    "mua_bi_xep": {
+     "MUA": 794.4033264033264,
+     "BAN": 71.15603448275863,
+     "KXD": 12.027027027027026
+    },
+    "khu_vuc_chinh_xac": 0.9076003340686786,
+    "khach_xa_lot_qua": 0.06745080017070643,
+    "theo_tang": {
+     "R_trong_hoac_qua_ngan": {
+      "mau": 12,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "T_chu_de_khac_co_chu_man": {
+      "mau": 40,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "T_chu_de_khac": {
+      "mau": 36,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "M_da_binh_luan": {
+      "mau": 39,
+      "sai_quyet_dinh": 6,
+      "bo_sot": 0,
+      "nham": 6
+     },
+     "M_mua_nhung_bo_qua": {
+      "mau": 37,
+      "sai_quyet_dinh": 2,
+      "bo_sot": 0,
+      "nham": 2
+     },
+     "M_khong_xac_dinh": {
+      "mau": 37,
+      "sai_quyet_dinh": 5,
+      "bo_sot": 5,
+      "nham": 0
+     },
+     "M_ban_do_ai": {
+      "mau": 29,
+      "sai_quyet_dinh": 2,
+      "bo_sot": 2,
+      "nham": 0
+     },
+     "M_ban_co_dau_hieu_mua": {
+      "mau": 40,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "M_ban_khac": {
+      "mau": 39,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     }
+    }
+   },
+   "n1": {
+    "so_mau": 325,
+    "quy_mo": 18599.0,
+    "recall_nen": [
+     0.9144848298167257,
+     [
+      0.8229658379663626,
+      0.989231699939504
+     ]
+    ],
+    "precision_nen": [
+     0.8073079537729437,
+     [
+      0.7006621656712542,
+      0.9023045759447433
+     ]
+    ],
+    "so_khach_dung": "649 (95%: 544–752)",
+    "so_bo_sot": "56 (95%: 7–127)",
+    "so_binh_luan_nham": "142 (95%: 71–224)",
+    "bo_sot_moi_ngay": 2.4141304347826087,
+    "nguyen_nhan_bo_sot": {
+     "hệ thống coi là bài BÁN": 44.4,
+     "ý định không xác định (Gemini cũng không chắc / hết lượt)": 11.125
+    },
+    "chu_de_recall": 0.947544218456131,
+    "chu_de_precision": 0.9119386745796242,
+    "chu_de_nham": {
+     "man_hinh->man_hinh": 4609.85,
+     "man_hinh->pc": 0,
+     "man_hinh->laptop": 255.2,
+     "man_hinh->khac": 0,
+     "pc->man_hinh": 231.04999999999998,
+     "pc->pc": 2726.15,
+     "pc->laptop": 1426.55,
+     "pc->khac": 545.1,
+     "laptop->man_hinh": 83.675,
+     "laptop->pc": 342.35,
+     "laptop->laptop": 5457.15,
+     "laptop->khac": 551.1,
+     "khac->man_hinh": 130.425,
+     "khac->pc": 272.55,
+     "khac->laptop": 0,
+     "khac->khac": 1967.8500000000001
+    },
+    "y_dinh_recall_mua": 0.9037946029665813,
+    "y_dinh_precision_mua": 0.8784667940478258,
+    "mua_bi_xep": {
+     "MUA": 758.6,
+     "BAN": 69.625,
+     "KXD": 11.125
+    },
+    "khu_vuc_chinh_xac": 0.9108753925561076,
+    "khach_xa_lot_qua": 0.07020285243479743,
+    "theo_tang": {
+     "R_trong_hoac_qua_ngan": {
+      "mau": 15,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "T_chu_de_khac_co_chu_man": {
+      "mau": 40,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "T_chu_de_khac": {
+      "mau": 40,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "M_da_binh_luan": {
+      "mau": 40,
+      "sai_quyet_dinh": 7,
+      "bo_sot": 0,
+      "nham": 7
+     },
+     "M_mua_nhung_bo_qua": {
+      "mau": 40,
+      "sai_quyet_dinh": 5,
+      "bo_sot": 0,
+      "nham": 5
+     },
+     "M_khong_xac_dinh": {
+      "mau": 40,
+      "sai_quyet_dinh": 5,
+      "bo_sot": 5,
+      "nham": 0
+     },
+     "M_ban_do_ai": {
+      "mau": 30,
+      "sai_quyet_dinh": 2,
+      "bo_sot": 2,
+      "nham": 0
+     },
+     "M_ban_co_dau_hieu_mua": {
+      "mau": 40,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "M_ban_khac": {
+      "mau": 40,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     }
+    }
+   },
+   "n2": {
+    "so_mau": 325,
+    "quy_mo": 18599.0,
+    "recall_nen": [
+     0.8175695556935954,
+     [
+      0.6722612398385225,
+      0.9531446158830439
+     ]
+    ],
+    "precision_nen": [
+     0.8500000000000001,
+     [
+      0.7529143010716566,
+      0.9389256559277052
+     ]
+    ],
+    "so_khach_dung": "765 (95%: 622–943)",
+    "so_bo_sot": "140 (95%: 31–311)",
+    "so_binh_luan_nham": "110 (95%: 45–184)",
+    "bo_sot_moi_ngay": 6.065217391304348,
+    "nguyen_nhan_bo_sot": {
+     "hệ thống coi là bài BÁN": 126.14999999999999,
+     "ý định không xác định (Gemini cũng không chắc / hết lượt)": 13.35
+    },
+    "chu_de_recall": 0.947544218456131,
+    "chu_de_precision": 0.9119386745796242,
+    "chu_de_nham": {
+     "man_hinh->man_hinh": 4609.85,
+     "man_hinh->pc": 0,
+     "man_hinh->laptop": 255.2,
+     "man_hinh->khac": 0,
+     "pc->man_hinh": 222.375,
+     "pc->pc": 2726.15,
+     "pc->laptop": 881.45,
+     "pc->khac": 545.1,
+     "laptop->man_hinh": 92.35,
+     "laptop->pc": 342.35,
+     "laptop->laptop": 6002.25,
+     "laptop->khac": 551.1,
+     "khac->man_hinh": 130.425,
+     "khac->pc": 272.55,
+     "khac->laptop": 0,
+     "khac->khac": 1967.8500000000001
+    },
+    "y_dinh_recall_mua": 0.8274634056927387,
+    "y_dinh_precision_mua": 0.9148283249377569,
+    "mua_bi_xep": {
+     "MUA": 790.0,
+     "BAN": 151.375,
+     "KXD": 13.350000000000001
+    },
+    "khu_vuc_chinh_xac": 0.8549376405643019,
+    "khach_xa_lot_qua": 0.06784585149107066,
+    "theo_tang": {
+     "R_trong_hoac_qua_ngan": {
+      "mau": 15,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "T_chu_de_khac_co_chu_man": {
+      "mau": 40,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "T_chu_de_khac": {
+      "mau": 40,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "M_da_binh_luan": {
+      "mau": 40,
+      "sai_quyet_dinh": 6,
+      "bo_sot": 0,
+      "nham": 6
+     },
+     "M_mua_nhung_bo_qua": {
+      "mau": 40,
+      "sai_quyet_dinh": 3,
+      "bo_sot": 0,
+      "nham": 3
+     },
+     "M_khong_xac_dinh": {
+      "mau": 40,
+      "sai_quyet_dinh": 6,
+      "bo_sot": 6,
+      "nham": 0
+     },
+     "M_ban_do_ai": {
+      "mau": 30,
+      "sai_quyet_dinh": 3,
+      "bo_sot": 3,
+      "nham": 0
+     },
+     "M_ban_co_dau_hieu_mua": {
+      "mau": 40,
+      "sai_quyet_dinh": 0,
+      "bo_sot": 0,
+      "nham": 0
+     },
+     "M_ban_khac": {
+      "mau": 40,
+      "sai_quyet_dinh": 1,
+      "bo_sot": 1,
+      "nham": 0
+     }
+    }
+   }
+  },
+  "lech_so_voi_production": {
+   "bai_production_da_binh_luan": 40,
+   "ma_hien_tai_van_cho_binh_luan": 40,
+   "ma_hien_tai_cho_binh_luan_bai_production_bo_qua": 20
+  }
+ },
+ "the_binh_luan": {
+  "b1_mau_dang_bat": {
+   "tong": 48,
+   "loi": []
+  },
+  "b2_ai_that": {
+   "tong": 55,
+   "bi_chap_nhan_nham": []
+  },
+  "b3_mau_cu_dai": {
+   "tong": 132,
+   "bi_chap_nhan_nham": [],
+   "co_ho_ten_day_du": 119
+  },
+  "b4_da_dang": {
+   "an_toan_tong": 260,
+   "an_toan_lo_lien_he": [],
+   "day_du_tong": 42,
+   "day_du_con_lien_he_sau_make_safe": [],
+   "da_dang_co_ho_ten_day_du": 764
+  },
+  "b5_tan_cong": {
+   "tu_choi_tong": 33,
+   "bi_lot_qua": [],
+   "chap_nhan_tong": 4,
+   "bi_tu_choi_nham": []
+  }
+ },
+ "che_thong_tin": {
+  "tong_bai": 18611,
+  "bai_co_chuoi_9_so": 2097,
+  "van_con_chuoi_9_so_sau_khi_che": 35,
+  "van_con_giong_sdt_sau_khi_che": 0
+ }
+}

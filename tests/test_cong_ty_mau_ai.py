@@ -144,6 +144,9 @@ def test_other_ways_to_lay_out_the_same_facts_pass(so):
     (MO_DAU_TOT + "\nNgười bán: Hoàng Văn Dũng", "người bán"),
     ("MSI G2712F – 27 inch 2K · 180Hz · 1ms · Hoàng Văn Dũng", "người bán"),
     ("MSI G2712F – 27 inch 2K · 180Hz · 1ms · Dũng", "người bán"),
+    (MO_DAU_TOT + " 0 9 0 2 1 8 9 7 5 1", "che số điện thoại"),            # bộ đánh giá 29/10 tìm ra: SĐT tách từng chữ số từng lọt qua
+    (MO_DAU_TOT + " 0-9-0-2-1-8-9-7-5-1", "che số điện thoại"),
+    (MO_DAU_TOT + " 0.9.0.2.1.8.9.7.5.1", "che số điện thoại"),
     (MO_DAU_TOT + "\nDũng-0902189751-64 Cầu Diễn", "điện thoại"),
 ])
 def test_dangerous_cards_are_refused(so, mo_dau, tu_khoa):

@@ -42,3 +42,4 @@ logs/
 *.tmp.xlsx
 ~$*
 .claude/
+.coverage

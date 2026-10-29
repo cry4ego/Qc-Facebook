@@ -278,6 +278,8 @@ def kiem_tra_mo_dau(mo_dau: str, thong_so: str, da_co: list[str], so: su_that.Su
         van_de.append("có đường link / tên miền (kể cả link rút gọn)")
     if "!" in chu:
         van_de.append("có dấu chấm than (thẻ thông số không cần)")
+    if re.search(r"(?<!\d)(?:\d[ .\-]){8,}\d(?!\d)", chu):       # "0 9 0 2 1 8 9 7 5 1": bộ đánh giá 29/10 thấy kiểu này từng lọt qua
+        van_de.append("chữ số viết tách rời từng số (nghi che số điện thoại)")
     if su_that.tim_gia(chu):
         van_de.append("nhắc giá tiền (thẻ thông số không ghi giá)")
     ten_nguoi_ban = su_that.bo_dau(so.lay("Người bán"))
