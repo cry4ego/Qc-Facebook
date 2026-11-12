@@ -45,8 +45,10 @@ class Config:
     MAX_FOUND_GROUPS = 30             # giữ tối đa ... nhóm tự tìm (Hà Nội & đông thành viên trước)
 
     # Giới hạn hành động
-    MIN_DELAY = 30          # chờ giữa 2 bài (đăng hoặc bình luận), giây
-    MAX_DELAY = 120
+    # Giãn cách ~5 phút giữa 2 bài (đăng hoặc bình luận) — chủ shop muốn chạy chậm như người thật để không bị
+    # Facebook tính là spam (acc 2019). Để 4–6 phút (có ngẫu nhiên) thay vì đúng 5:00 mỗi lần (đều tăm tắp = máy).
+    MIN_DELAY = 240         # chờ giữa 2 bài (đăng hoặc bình luận), giây (~4 phút)
+    MAX_DELAY = 360         # ~6 phút
     MAX_POSTS_PER_DAY = 10  # số nhóm tối đa cho mỗi bài trong lịch đăng
 
     # Theo dõi bài mới & tự bình luận (chạy liên tục: từng nhóm quét hết bài mới -> bình luận hết -> sang nhóm sau;
@@ -58,15 +60,17 @@ class Config:
     # Bài build PC có kèm màn hình vẫn tính là "Màn hình". Thêm "PC" / "Laptop" nếu muốn; [] = mọi bài
     COMMENT_TOPICS = ["Màn hình"]
     # mỗi bài cần mua: bình luận ... mẫu màn (chọn ngẫu nhiên trong các sản phẩm đang bật); 0 = mọi sản phẩm đang bật
-    # (20/10: 5 mẫu màn — chủ shop muốn mỗi bài 5 bình luận riêng, mỗi bình luận 1 mẫu màn + 1 ảnh bán hàng.
-    #  Bị Facebook chặn bình luận thì giảm số này hoặc MAX_COMMENTED_POSTS_PER_DAY)
-    COMMENT_PRODUCTS_PER_POST = 5
+    # (12/11/2026: chủ shop đổi về 1 — mỗi bài CHỈ 1 bình luận + 1 ẢNH GHÉP 4 mẫu đang bán, bình luận không có SĐT/tên
+    #  người bán (liên hệ in sẵn trên ảnh) để đỡ bị tính spam. Nạp nội dung: tools/nap_asl_ghep.py.
+    #  Trước đó 20/10: 5 — mỗi bài 5 bình luận + 5 ảnh. Bị Facebook chặn thì giảm MAX_COMMENTED_POSTS_PER_DAY)
+    COMMENT_PRODUCTS_PER_POST = 1
     NOI_DUNG_DIR = os.path.join(DATA_DIR, "noi_dung")  # nội dung bán hàng: python main.py noidung "<thư mục nguồn>"
-    MAX_COMMENTED_POSTS_PER_DAY = 40  # giới hạn số bài/ngày (05/10 bị chặn sau 121 bài); 0 = không giới hạn
+    MAX_COMMENTED_POSTS_PER_DAY = 8   # (12/11/2026) KHỞI ĐỘNG NHẸ: acc 2019 lần đầu chạy bot -> chạy ít cho an toàn,
+                                      # tăng dần sau vài ngày nếu không bị chặn. 0 = không giới hạn
     ROUND_IDLE_MINUTES = 5            # vòng quét không có bài mới -> chờ ... phút rồi quét lại
     WATCH_SCROLLS = 60                # số lần cuộn tối đa mỗi nhóm (dừng sớm khi gặp bài cũ hơn MAX_POST_AGE_MINUTES)
-    COMMENT_GAP_MIN = 15              # chờ giữa 3 bình luận trong cùng 1 bài, giây
-    COMMENT_GAP_MAX = 40
+    COMMENT_GAP_MIN = 60             # chờ giữa các bình luận trong cùng 1 bài, giây (giãn hơn cho giống người thật,
+    COMMENT_GAP_MAX = 150            # tránh 5 bình luận dồn dập trong vài chục giây -> dễ bị tính spam)
     # Tạm ngừng NHÓM từ chối bình luận (bản không SĐT/địa chỉ): chỉ khi từ chối DÀY — từ GROUP_STOP_MIN_REJECTS lần trong
     # GROUP_STOP_WINDOW_HOURS giờ VÀ từ GROUP_STOP_MIN_RATE số bình luận đã gửi vào nhóm. Ngừng GROUP_STOP_HOURS giờ, tái diễn thì
     # gấp đôi (tối đa GROUP_STOP_MAX_HOURS giờ), hết hạn tự mở lại. (Trước 25/10: 1 lần từ chối = ngừng vĩnh viễn -> mất nhóm tốt nhất)
@@ -85,11 +89,14 @@ class Config:
         "https://www.facebook.com/groups/manhinhmaytinh/",
         "https://www.facebook.com/groups/760589759199370/",
     ]
-    HOT_RESCAN_MINUTES = 2            # bài cần mua: phát hiện & bình luận càng sớm càng tốt
+    HOT_RESCAN_MINUTES = 5            # quét lại nhóm hot mỗi ~5 phút (chủ shop muốn giãn cách quét ~5 phút, acc 2019)
 
     # ===== Chạy song song (10/10): cửa sổ QUÉT (python main.py quet) tìm bài -> hàng chờ; cửa sổ BÌNH LUẬN
     # (python main.py) lấy bài MỚI NHẤT trong hàng chờ bình luận ngay. chay-ngam.bat mở cả 2 =====
-    PARALLEL = True                   # False = cách cũ: 1 cửa sổ tự quét từng nhóm rồi bình luận
+    # False = 1 CỬA SỔ DUY NHẤT: tự quét từng nhóm rồi bình luận (an toàn nhất cho 1 acc — chỉ 1 vân tay + 1 IP).
+    # Dùng với AdsPower (anti-detect) cho acc 2019: KHÔNG chạy nhiều cửa sổ, vì cùng 1 acc đăng nhập nhiều vân tay /
+    # nhiều IP cùng lúc chính là dấu hiệu bot rõ nhất. (True = chạy song song cửa sổ quét — chỉ khi mỗi cửa sổ 1 acc riêng.)
+    PARALLEL = False
     SCAN_USER_DATA_DIR = os.path.join(BASE_DIR, "chrome_profile_quet")  # Chrome của cửa sổ quét (python main.py taophienquet)
     SCAN_WINDOWS = 2                  # số cửa sổ QUÉT chạy cùng lúc (chia nhau các nhóm, không quét trùng); cửa sổ thứ 2
                                       # dùng Chrome chrome_profile_quet2
@@ -189,3 +196,16 @@ class Config:
 
     # Chrome profile (giữ đăng nhập)
     USER_DATA_DIR = os.path.join(BASE_DIR, "chrome_profile")
+
+    # ===== Trình duyệt chống phát hiện AdsPower (anti-detect) =====
+    # True = mở Chrome QUA AdsPower: mỗi profile AdsPower có 1 vân tay (fingerprint) + 1 proxy dân cư riêng, nên Facebook
+    # thấy acc chạy từ đúng 1 "thiết bị" như người thật -> ít bị tính là spam. KHÔNG dùng chrome_profile/ nữa.
+    # Chuẩn bị (xem modules/adspower.py): cài app AdsPower -> tạo 1 profile + gán proxy dân cư VN -> Settings -> Local API
+    # (bật) -> lấy "Profile ID" dán vào ADSPOWER_USER_IDS["default"] -> đặt ADSPOWER = True -> python main.py login.
+    ADSPOWER = True
+    ADSPOWER_API = "http://local.adspower.net:50325"   # API cục bộ của AdsPower (đổi cổng nếu bạn đổi trong Settings)
+    # Map thư mục profile -> hồ sơ AdsPower. Nhận "serial number" (số thứ tự trong danh sách Hồ sơ, vd "1") HOẶC
+    # "user_id" (chuỗi chữ-số). Chạy 1 cửa sổ: chỉ cần "default".
+    ADSPOWER_USER_IDS = {
+        "default": "1",           # hồ sơ FB-ChinhBan-2019 (serial number = 1)
+    }

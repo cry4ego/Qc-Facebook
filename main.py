@@ -29,6 +29,7 @@ from modules.products import load_pool, pick_pool
 from modules.watcher import GroupWatcher, daily_cap_reached, minutes_to_tomorrow
 from modules.db import Database
 from modules import browser
+from modules import adspower
 from modules import group_discovery
 from modules import noi_dung
 from modules.scanner import Scanner
@@ -50,14 +51,18 @@ db = Database(Config.DB_FILE)
 
 
 def create_driver(profile=None):
-    """Khởi tạo Chrome với profile để giữ đăng nhập (mặc định chrome_profile; cửa sổ quét: SCAN_USER_DATA_DIR)"""
+    """Khởi tạo Chrome với profile để giữ đăng nhập (mặc định chrome_profile; cửa sổ quét: SCAN_USER_DATA_DIR).
+    Config.ADSPOWER = True: nối vào trình duyệt anti-detect AdsPower (vân tay + proxy dân cư riêng) thay vì tự mở Chrome"""
     profile = profile or Config.USER_DATA_DIR
+    if getattr(Config, "ADSPOWER", False):
+        return _create_driver_adspower(profile)
     browser.close_leftover_chrome(profile, logger)
     options = webdriver.ChromeOptions()
     options.add_argument(f"--user-data-dir={profile}")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
+    options.add_argument("--enable-extensions")
     options.add_argument("--start-maximized")
     # Chạy 3 Chrome cùng lúc: bộ phân giải tên miền riêng của Chrome hay báo ERR_NAME_NOT_RESOLVED (10/10) -> dùng
     # bộ phân giải của Windows (có bộ nhớ đệm chung), không tra trước tên miền của các link trên trang
@@ -74,6 +79,19 @@ def create_driver(profile=None):
     driver.execute_script(
         "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
     )
+    return driver
+
+
+def _create_driver_adspower(profile):
+    """Nối Selenium vào trình duyệt AdsPower (đã có vân tay + proxy dân cư riêng). AdsPower tự lo chống phát hiện,
+    nên KHÔNG thêm cờ --user-data-dir / --disable-blink-features ở đây."""
+    user_id = adspower.resolve_user_id(Config, profile)
+    address, driver_path = adspower.start(Config, user_id)
+    logger.info(f"🧩 AdsPower: đã mở profile '{user_id}' ({address})")
+    options = webdriver.ChromeOptions()
+    options.add_experimental_option("debuggerAddress", address)
+    driver = webdriver.Chrome(service=Service(driver_path), options=options)
+    driver._adspower_user_id = user_id            # để _quit đóng đúng profile khi tắt
     return driver
 
 
@@ -663,10 +681,13 @@ def blocked_until():
 
 
 def _quit(driver):
+    user_id = getattr(driver, "_adspower_user_id", None)
     try:
         driver.quit()
     except Exception:
         pass  # Chrome đã hỏng / đã đóng
+    if user_id:                      # đóng luôn trình duyệt AdsPower (quit() chỉ ngắt Selenium, không tắt profile)
+        adspower.stop(Config, user_id)
 
 
 def task_scan(n=1):
